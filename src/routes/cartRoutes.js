@@ -1,0 +1,216 @@
+const express = require('express');
+const router = express.Router();
+const { v4: uuidv4 } = require('uuid');
+
+
+const cartTempStore = {};
+
+/**
+ * @swagger
+ * tags:
+ *   name: CartTemp
+ *   description: API para el carrito temporal de visitantes
+ */
+
+/**
+ * @swagger
+ * /api/cart/temp:
+ *   post:
+ *     summary: Agrega un producto al carrito temporal
+ *     tags: [CartTemp]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               session_id:
+ *                 type: string
+ *               product_id:
+ *                 type: string
+ *               product_name:
+ *                 type: string
+ *               product_image:
+ *                 type: string
+ *               product_price:
+ *                 type: number
+ *               quantity:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Producto agregado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *                 cartCount:
+ *                   type: integer
+ */
+
+router.post('/temp', (req, res) => {
+  console.log('POST /api/cart/temp BODY:', req.body);
+  const { session_id, product_id, product_name, product_image, product_price, quantity = 1 } = req.body;
+  if (!session_id || !product_id) {
+    return res.status(400).json({ error: 'session_id y product_id requeridos' });
+  }
+  if (!cartTempStore[session_id]) cartTempStore[session_id] = [];
+
+  
+  const existingIdx = cartTempStore[session_id].findIndex(p => p.product_id === product_id);
+  if (existingIdx !== -1) {
+   
+    cartTempStore[session_id][existingIdx].quantity += quantity;
+  } else {
+    
+    cartTempStore[session_id].push({
+      id_cart_temp: uuidv4(),
+      product_id,
+      product_name,
+      product_image,
+      product_price,
+      quantity
+    });
+  }
+  res.json({ ok: true, cartCount: cartTempStore[session_id].reduce((sum, p) => sum + p.quantity, 0) });
+});
+
+/**
+ * @swagger
+ * /api/cart/temp/count:
+ *   get:
+ *     summary: Obtiene el contador de productos en el carrito temporal
+ *     tags: [CartTemp]
+ *     parameters:
+ *       - in: query
+ *         name: session_id
+ *         schema:
+ *           type: string
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Contador de productos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cartCount:
+ *                   type: integer
+ */
+
+router.get('/temp/count', (req, res) => {
+  const { session_id } = req.query;
+  const count = cartTempStore[session_id]?.reduce((sum, p) => sum + p.quantity, 0) || 0;
+  res.json({ cartCount: count });
+});
+
+/**
+ * @swagger
+ * /api/cart/temp:
+ *   get:
+ *     summary: Obtiene todos los productos del carrito temporal
+ *     tags: [CartTemp]
+ *     parameters:
+ *       - in: query
+ *         name: session_id
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Si no se envía, devuelve todos los carritos temporales existentes
+ *     responses:
+ *       200:
+ *         description: Lista de productos en el carrito (o todos los carritos si no se pasa session_id)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id_cart_temp:
+ *                     type: string
+ *                   product_id:
+ *                     type: string
+ *                   product_name:
+ *                     type: string
+ *                   product_image:
+ *                     type: string
+ *                   product_price:
+ *                     type: number
+ *                   quantity:
+ *                     type: integer
+ */
+
+router.get('/temp', async (req, res) => {
+  const { session_id } = req.query;
+  if (session_id) {
+    const items = cartTempStore[session_id] || [];
+   
+    const result = items.map((item, idx) => ({
+      id_cart_temp: item.id_cart_temp || item.id || idx.toString(),
+      ...item,
+    }));
+    return res.json(result);
+  } else {
+    
+    let allItems = [];
+    Object.keys(cartTempStore).forEach(sid => {
+      const items = cartTempStore[sid] || [];
+      allItems = allItems.concat(
+        items.map((item, idx) => ({
+          id_cart_temp: item.id_cart_temp || item.id || idx.toString(),
+          ...item,
+          session_id: sid,
+        }))
+      );
+    });
+    return res.json(allItems);
+  }
+});
+
+
+router.post('/temp/update-qty', (req, res, next) => {
+  console.log('[BACKEND DEBUG] update-qty body:', req.body);
+  next();
+}, (req, res) => {
+  const { session_id, id_cart_temp, quantity } = req.body;
+  if (!session_id || !id_cart_temp || typeof quantity !== 'number') {
+    return res.status(400).json({ message: 'session_id, id_cart_temp y quantity requeridos' });
+  }
+  const items = cartTempStore[session_id] || [];
+  const idx = items.findIndex(p => p.id_cart_temp === id_cart_temp);
+  if (idx === -1) {
+    return res.status(404).json({ message: 'Producto no encontrado en carrito' });
+  }
+  items[idx].quantity = quantity;
+  res.status(200).json({ message: 'Cantidad actualizada' });
+});
+
+
+router.post('/temp/delete', (req, res, next) => {
+  console.log('[BACKEND DEBUG] delete body:', req.body);
+  next();
+}, (req, res) => {
+  const { session_id, id_cart_temp } = req.body;
+  if (!session_id || !id_cart_temp) {
+    return res.status(400).json({ message: 'session_id y id_cart_temp requeridos' });
+  }
+  const items = cartTempStore[session_id] || [];
+  const idx = items.findIndex(p => p.id_cart_temp === id_cart_temp);
+  if (idx === -1) {
+    return res.status(404).json({ message: 'Producto no encontrado en carrito' });
+  }
+  items.splice(idx, 1);
+  res.status(200).json({ message: 'Producto eliminado del carrito' });
+});
+
+
+router.get('/test', (req, res) => {
+  res.json({ ok: true });
+});
+
+module.exports = router;
