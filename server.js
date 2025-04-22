@@ -15,6 +15,7 @@ const productRoutes = require('./src/routes/productRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const cartRoutes = require('./src/routes/cartRoutes');
+const reservationRoutes = require('./src/routes/reservationRoutes');
 const { swaggerUi, swaggerSpec } = require('./src/swagger');
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -23,6 +24,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/reservaciones', reservationRoutes);
 
 app.get('/', (req, res) => {
   res.send('API de CasaBlanca Coffee Shop funcionando correctamente');

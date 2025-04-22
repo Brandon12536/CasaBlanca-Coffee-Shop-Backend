@@ -107,6 +107,16 @@ El servidor correrá por defecto en el puerto **5050**.
 - La documentación Swagger está disponible en `/api-docs`.
 - La estructura modular facilita el mantenimiento y escalabilidad.
 
+## Reservaciones
+
+- Se añadieron las nuevas APIs de **reservaciones**:
+  - **POST** `/api/reservaciones` — Crea una nueva reservación.
+  - **GET** `/api/reservaciones` — Obtiene todas las reservaciones.
+  - **GET** `/api/reservaciones/{id}` — Obtiene una reservación por ID.
+  - **PUT** `/api/reservaciones/{id}` — Actualiza una reservación por ID.
+  - **DELETE** `/api/reservaciones/{id}` — Elimina una reservación por ID.
+  - Los datos gestionados incluyen: nombre completo, correo electrónico, fecha y hora de visita, número de personas, notas adicionales y teléfono.
+  - Documentación Swagger disponible para estas rutas bajo la etiqueta `Reservaciones`.
 ## Cambios recientes
 - Se corrigió el filtrado acumulativo (puedes combinar búsqueda, categoría, precio y recientes).
 - El backend traduce correctamente los valores de categoría del frontend.

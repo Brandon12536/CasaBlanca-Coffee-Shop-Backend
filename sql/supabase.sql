@@ -88,3 +88,16 @@ create policy "CartTemp: solo por session_id" on public.cart_temp
 create policy "CartTemp: select abierto" on public.cart_temp for select using (true);
 
 create policy "Allow all select users" on public.users for select using (true);
+
+
+CREATE TABLE reservaciones (
+    id_reservaciones SERIAL PRIMARY KEY,
+    nombre_completo TEXT NOT NULL,
+    correo_electronico TEXT NOT NULL,
+    fecha_visita DATE NOT NULL,
+    hora_visita TEXT NOT NULL,
+    numero_personas INTEGER NOT NULL,
+    notas_adicionales TEXT,
+    telefono VARCHAR(10) NOT NULL DEFAULT '',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('America/Mexico_City', now())
+);

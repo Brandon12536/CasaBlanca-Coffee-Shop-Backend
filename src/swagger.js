@@ -35,8 +35,159 @@ const swaggerOptions = {
             added_at: { type: 'string', format: 'date-time', description: 'Fecha de agregado al carrito (UTC)' }
           },
           required: ['id_cart_temp', 'session_id', 'product_id', 'product_name', 'product_price', 'quantity', 'added_at']
+        },
+        Reservacion: {
+          type: 'object',
+          properties: {
+            nombre_completo: { type: 'string' },
+            correo_electronico: { type: 'string' },
+            fecha_visita: { type: 'string', format: 'date' },
+            hora_visita: { type: 'string' },
+            numero_personas: { type: 'integer' },
+            notas_adicionales: { type: 'string' },
+            telefono: { type: 'string', minLength: 10, maxLength: 10, description: 'Teléfono a 10 dígitos' }
+          },
+          required: [
+            'nombre_completo',
+            'correo_electronico',
+            'fecha_visita',
+            'hora_visita',
+            'numero_personas',
+            'telefono'
+          ]
         }
       }
+    },
+    paths: {
+      '/api/reservaciones': {
+        post: {
+          tags: ['Reservaciones'],
+          summary: 'Crear una nueva reservación',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Reservacion' }
+              }
+            }
+          },
+          responses: {
+            201: {
+              description: 'Reservación creada exitosamente'
+            },
+            500: {
+              description: 'Error interno del servidor'
+            }
+          }
+        },
+        get: {
+          tags: ['Reservaciones'],
+          summary: 'Obtener todas las reservaciones',
+          responses: {
+            200: {
+              description: 'Lista de reservaciones',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/Reservacion' }
+                  }
+                }
+              }
+            },
+            500: {
+              description: 'Error interno del servidor'
+            }
+          }
+        }
+      },
+      '/api/reservaciones/{id}': {
+        get: {
+          tags: ['Reservaciones'],
+          summary: 'Obtener una reservación por ID',
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              schema: { type: 'integer' },
+              description: 'ID de la reservación'
+            }
+          ],
+          responses: {
+            200: {
+              description: 'Reservación encontrada',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Reservacion' }
+                }
+              }
+            },
+            404: {
+              description: 'Reservación no encontrada'
+            },
+            500: {
+              description: 'Error interno del servidor'
+            }
+          }
+        },
+        put: {
+          tags: ['Reservaciones'],
+          summary: 'Actualizar una reservación por ID',
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              schema: { type: 'integer' },
+              description: 'ID de la reservación'
+            }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Reservacion' }
+              }
+            }
+          },
+          responses: {
+            200: {
+              description: 'Reservación actualizada exitosamente'
+            },
+            404: {
+              description: 'Reservación no encontrada'
+            },
+            500: {
+              description: 'Error interno del servidor'
+            }
+          }
+        },
+        delete: {
+          tags: ['Reservaciones'],
+          summary: 'Eliminar una reservación por ID',
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              required: true,
+              schema: { type: 'integer' },
+              description: 'ID de la reservación'
+            }
+          ],
+          responses: {
+            200: {
+              description: 'Reservación eliminada exitosamente'
+            },
+            404: {
+              description: 'Reservación no encontrada'
+            },
+            500: {
+              description: 'Error interno del servidor'
+            }
+          }
+        }
+      },
     },
     security: [
       { bearerAuth: [] }
