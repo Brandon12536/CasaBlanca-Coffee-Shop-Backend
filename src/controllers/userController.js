@@ -46,6 +46,10 @@ exports.loginUser = async (req, res) => {
 
 exports.getUserProfile = async (req, res) => {
   try {
+   
+    if (!req.user || !req.user.id) {
+      return res.status(200).json({});
+    }
     const user = await userService.getUserProfile(req.user.id);
     res.status(200).json(user);
   } catch (error) {

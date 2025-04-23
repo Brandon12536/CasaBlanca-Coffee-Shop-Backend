@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const cartController = require('../controllers/cartController');
 
 
 const cartTempStore = {};
@@ -208,6 +209,55 @@ router.post('/temp/delete', (req, res, next) => {
   res.status(200).json({ message: 'Producto eliminado del carrito' });
 });
 
+/**
+ * @swagger
+ * /api/cart/transfer-temp-to-user:
+ *   post:
+ *     summary: Mueve productos del carrito temporal al carrito del usuario autenticado
+ *     tags: [Cart]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               session_id:
+ *                 type: string
+ *               user_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Productos transferidos correctamente
+ */
+router.post('/transfer-temp-to-user', cartController.transferTempCartToUser);
+
+/**
+ * @swagger
+ * /api/cart/user/{user_id}:
+ *   get:
+ *     summary: Obtiene el carrito de un usuario autenticado
+ *     tags: [Cart]
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Carrito del usuario
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cart:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ */
+router.get('/user/:user_id', cartController.getCartByUser);
 
 router.get('/test', (req, res) => {
   res.json({ ok: true });

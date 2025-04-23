@@ -95,3 +95,67 @@ exports.updateCartTempQty = async (req, res) => {
     res.status(500).json({ message: 'Error actualizando cantidad', error: error.message });
   }
 };
+
+// Obtener productos del carrito autenticado de un usuario
+exports.getCartByUser = async (req, res) => {
+  const user_id = req.params.user_id || req.query.user_id;
+  if (!user_id) {
+    return res.status(400).json({ message: 'user_id requerido' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('cart')
+      .select('*')
+      .eq('user_id', user_id);
+    if (error) throw error;
+    res.status(200).json({ cart: data });
+  } catch (error) {
+    res.status(500).json({ message: 'Error obteniendo el carrito', error: error.message });
+  }
+};
+
+
+exports.transferTempCartToUser = async (req, res) => {
+  const { session_id, user_id } = req.body;
+  try {
+   
+    const { data: tempProducts, error: tempError } = await supabase
+      .from('cart_temp')
+      .select('*')
+      .eq('session_id', session_id);
+
+    if (tempError) throw tempError;
+
+    if (tempProducts && tempProducts.length > 0) {
+      
+      const cartRows = tempProducts.map(item => ({
+        user_id,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        product_image: item.product_image,
+        product_price: item.product_price,
+        quantity: item.quantity,
+        added_at: item.added_at,
+      }));
+
+    
+      const { error: insertError } = await supabase
+        .from('cart')
+        .insert(cartRows);
+
+      if (insertError) throw insertError;
+
+ 
+      const { error: deleteError } = await supabase
+        .from('cart_temp')
+        .delete()
+        .eq('session_id', session_id);
+
+      if (deleteError) throw deleteError;
+    }
+
+    res.status(200).json({ message: 'Productos transferidos correctamente' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al transferir productos', error: error.message });
+  }
+};

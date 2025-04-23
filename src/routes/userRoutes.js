@@ -112,21 +112,17 @@ router.post('/login', userController.loginUser);
  * @swagger
  * /api/users/profile:
  *   get:
- *     summary: Obtiene el perfil del usuario autenticado
+ *     summary: Obtiene el perfil del usuario autenticado (o vacío si no autenticado)
  *     tags: [Users]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Perfil del usuario
+ *         description: Perfil del usuario o vacío
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
- *       401:
- *         description: No autorizado
  */
-router.get('/profile', protect, userController.getUserProfile);
+router.get('/profile', userController.getUserProfile);
 
 /**
  * @swagger
@@ -190,5 +186,21 @@ router.put('/profile', protect, userController.updateUserProfile);
  *         description: Usuario no encontrado
  */
 router.delete('/:id', protect, authorize('admin'), userController.deleteUser);
+
+/**
+ * @swagger
+ * /api/users/logout:
+ *   post:
+ *     summary: Cierra la sesión del usuario
+ *     tags: [Users]
+ *     responses:
+ *       200:
+ *         description: Sesión cerrada correctamente
+ */
+router.post('/logout', (req, res) => {
+  // Si usas JWT, el logout es manejado en el frontend (elimina el token)
+  // Si usas sesiones en servidor, aquí destruirías la sesión
+  res.status(200).json({ message: 'Sesión cerrada correctamente' });
+});
 
 module.exports = router;
