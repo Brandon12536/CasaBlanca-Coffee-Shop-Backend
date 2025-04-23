@@ -4,7 +4,8 @@ const TABLE_NAME = 'products';
 
 
 const categoryMap = {
-  cafe: 'café',
+  cafe: 'Café',
+  café: 'Café',
   tes: 'tes',
   postres: 'postres',
   desayunos: 'desayunos',
@@ -90,8 +91,12 @@ const getFilteredProducts = async ({ search, category, priceOrder, sort }) => {
 
   
   if (category) {
-    const dbCategory = categoryMap[category] || category;
-    query = query.eq('category', dbCategory);
+    if (category.toLowerCase().includes('cafe') || category.toLowerCase().includes('café')) {
+      query = query.or('category.ilike.%cafe%,category.ilike.%café%');
+    } else {
+      const dbCategory = categoryMap[category.toLowerCase()] || category;
+      query = query.eq('category', dbCategory);
+    }
   }
 
  
