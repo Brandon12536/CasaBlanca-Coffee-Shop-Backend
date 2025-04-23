@@ -211,26 +211,58 @@ router.post('/temp/delete', (req, res, next) => {
 
 /**
  * @swagger
- * /api/cart/transfer-temp-to-user:
- *   post:
- *     summary: Mueve productos del carrito temporal al carrito del usuario autenticado
- *     tags: [Cart]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               session_id:
- *                 type: string
- *               user_id:
- *                 type: string
- *     responses:
- *       200:
- *         description: Productos transferidos correctamente
+ * components:
+ *   schemas:
+ *     CartItem:
+ *       type: object
+ *       required:
+ *         - id_cart
+ *         - user_id
+ *         - product_id
+ *         - product_name
+ *         - product_price
+ *         - quantity
+ *       properties:
+ *         id_cart:
+ *           type: string
+ *           format: uuid
+ *           description: ID único del ítem en el carrito
+ *         user_id:
+ *           type: string
+ *           format: uuid
+ *           description: ID del usuario propietario del carrito
+ *         product_id:
+ *           type: string
+ *           format: uuid
+ *           description: ID del producto
+ *         product_name:
+ *           type: string
+ *           description: Nombre del producto
+ *         product_image:
+ *           type: string
+ *           description: URL de la imagen del producto
+ *         product_price:
+ *           type: number
+ *           format: float
+ *           description: Precio del producto
+ *         quantity:
+ *           type: integer
+ *           default: 1
+ *           description: Cantidad de productos
+ *         added_at:
+ *           type: string
+ *           format: date-time
+ *           description: Fecha en que se agregó el producto al carrito
+ *       example:
+ *         id_cart: "e9b1b7e4-8d33-4b3c-9b1f-4f3e2f6e3a1f"
+ *         user_id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+ *         product_id: "f3e2f6e3-a1f4-4b3c-9b1f-e9b1b7e48d33"
+ *         product_name: "Café Americano"
+ *         product_image: "https://placehold.co/400x300?text=Café+Americano"
+ *         product_price: 45.50
+ *         quantity: 2
+ *         added_at: "2025-04-23T15:38:06Z"
  */
-router.post('/transfer-temp-to-user', cartController.transferTempCartToUser);
 
 /**
  * @swagger
@@ -255,9 +287,33 @@ router.post('/transfer-temp-to-user', cartController.transferTempCartToUser);
  *                 cart:
  *                   type: array
  *                   items:
- *                     type: object
+ *                     $ref: '#/components/schemas/CartItem'
  */
+
 router.get('/user/:user_id', cartController.getCartByUser);
+
+/**
+ * @swagger
+ * /api/cart/transfer-temp-to-user:
+ *   post:
+ *     summary: Mueve productos del carrito temporal al carrito del usuario autenticado
+ *     tags: [Cart]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               session_id:
+ *                 type: string
+ *               user_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Productos transferidos correctamente
+ */
+router.post('/transfer-temp-to-user', cartController.transferTempCartToUser);
 
 router.get('/test', (req, res) => {
   res.json({ ok: true });
