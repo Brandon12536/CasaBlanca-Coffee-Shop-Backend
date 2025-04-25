@@ -58,6 +58,20 @@ exports.getUserProfile = async (req, res) => {
 };
 
 
+exports.getUserProfileById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await userService.getUserProfile(id);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Error al obtener perfil de usuario', error: error.message });
+  }
+};
+
+
 exports.updateUserProfile = async (req, res) => {
   try {
     const updatedUser = await userService.updateUserProfile(req.user.id, req.body);
@@ -77,5 +91,15 @@ exports.deleteUser = async (req, res) => {
     res.status(200).json({ message: 'Usuario eliminado correctamente' });
   } catch (error) {
     res.status(500).json({ message: 'Error al eliminar el usuario', error: error.message });
+  }
+};
+
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await userService.getAllUsers();
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Error interno', error: error.message });
   }
 };

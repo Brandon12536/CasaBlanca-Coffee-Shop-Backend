@@ -55,7 +55,65 @@ const swaggerOptions = {
             'numero_personas',
             'telefono'
           ]
-        }
+        },
+        PaymentIntentRequest: {
+          type: 'object',
+          properties: {
+            amount: {
+              type: 'number',
+              description: 'Monto en centavos (ej. 1000 = $10.00)'
+            },
+            currency: {
+              type: 'string',
+              default: 'mxn',
+              description: 'Moneda (por defecto mxn)'
+            },
+            user_id: {
+              type: 'string',
+              description: 'ID del usuario autenticado'
+            }
+          },
+          required: ['amount', 'user_id']
+        },
+        CheckoutRequest: {
+          type: 'object',
+          properties: {
+            cart: {
+              type: 'array',
+              items: { type: 'object' },
+              description: 'Array de productos en el carrito'
+            },
+            shippingAddress: {
+              type: 'string',
+              description: 'Dirección de envío'
+            },
+            paymentMethod: {
+              type: 'string',
+              description: 'Método de pago (ej. card)'
+            },
+            stripePaymentId: {
+              type: 'string',
+              description: 'ID del pago en Stripe'
+            },
+            amount: {
+              type: 'number',
+              description: 'Monto total de la orden'
+            },
+            currency: {
+              type: 'string',
+              description: 'Moneda'
+            },
+            receiptUrl: {
+              type: 'string',
+              description: 'URL del recibo de Stripe'
+            },
+            stripeEventData: {
+              type: 'object',
+              description: 'Datos adicionales del evento de Stripe (opcional)'
+            }
+          },
+          required: ['cart', 'shippingAddress', 'paymentMethod', 'stripePaymentId', 'amount', 'currency']
+        },
       }
     },
     paths: {

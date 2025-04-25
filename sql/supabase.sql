@@ -60,6 +60,26 @@ create table if not exists public.cart (
   added_at timestamp with time zone default timezone('utc'::text, now())
 );
 
+-- Tabla para pagos con Stripe
+create table public.payments (
+  id_payments uuid primary key default gen_random_uuid(),
+  order_id uuid references public.orders(id) on delete cascade,
+  user_id uuid references public.users(id) on delete set null,
+  stripe_payment_id text not null unique, --
+  amount numeric(10,2) not null, 
+  currency text not null default 'mxn',
+  status text not null default 'pending', -- pending, succeeded, failed, refunded, etc.
+  payment_method text, -- Tarjeta, efectivo, etc.
+  receipt_url text, -- URL del recibo de Stripe
+  cancellation_reason text, -- Motivo de la cancelación
+  canceled_at timestamp with time zone, -- Fecha de cancelación
+  refund_id text, -- ID del reembolso en Stripe
+  refund_amount numeric(10,2), -- Monto reembolsado
+  refund_status text, -- Estado del reembolso
+  stripe_event_data jsonb, -- Objeto del evento Stripe relacionado
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
 -- Habilitar RLS en todas las tablas
 alter table public.users enable row level security;
 alter table public.products enable row level security;
@@ -67,12 +87,14 @@ alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
 alter table public.cart enable row level security;
 alter table public.cart_temp enable row level security;
+alter table public.payments enable row level security;
 
 -- Permitir todo para pruebas (¡quitar en producción!)
 create policy "Allow all users" on public.users for all using (true);
 create policy "Allow all products" on public.products for all using (true);
 create policy "Allow all orders" on public.orders for all using (true);
 create policy "Allow all order_items" on public.order_items for all using (true);
+create policy "Allow all cart operations" on public.cart for all using (true);
 
 -- Políticas seguras para cart: solo el dueño puede ver y modificar
 create policy "Cart: solo dueño puede operar" on public.cart 
@@ -89,7 +111,6 @@ create policy "CartTemp: select abierto" on public.cart_temp for select using (t
 
 create policy "Allow all select users" on public.users for select using (true);
 
-
 CREATE TABLE reservaciones (
     id_reservaciones SERIAL PRIMARY KEY,
     nombre_completo TEXT NOT NULL,
@@ -101,3 +122,5 @@ CREATE TABLE reservaciones (
     telefono VARCHAR(10) NOT NULL DEFAULT '',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('America/Mexico_City', now())
 );
+
+create policy "Allow all cart operations" on public.cart for all using (true);

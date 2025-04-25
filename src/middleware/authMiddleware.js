@@ -13,6 +13,7 @@ const protect = async (req, res, next) => {
       
      
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      //console.log('[AUTH] Decoded JWT:', decoded);
       
      
       const { data, error } = await supabase
@@ -20,8 +21,10 @@ const protect = async (req, res, next) => {
         .select('id, name, email, role')
         .eq('id', decoded.id)
         .single();
+      //console.log('[AUTH] Supabase user data:', data);
       
       if (error) {
+        //console.error('[AUTH] Supabase error:', error);
         return res.status(401).json({ message: 'No autorizado, token inválido' });
       }
       
@@ -29,7 +32,7 @@ const protect = async (req, res, next) => {
       req.user = data;
       next();
     } catch (error) {
-      console.error(error);
+      //console.error(error);
       res.status(401).json({ message: 'No autorizado, token inválido' });
     }
   }

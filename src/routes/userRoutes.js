@@ -46,6 +46,15 @@ const { protect, authorize } = require('../middleware/authMiddleware');
  */
 /**
  * @swagger
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ */
+/**
+ * @swagger
  * /api/users/register:
  *   post:
  *     summary: Registra un nuevo usuario
@@ -114,6 +123,8 @@ router.post('/login', userController.loginUser);
  *   get:
  *     summary: Obtiene el perfil del usuario autenticado (o vacío si no autenticado)
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Perfil del usuario o vacío
@@ -122,7 +133,7 @@ router.post('/login', userController.loginUser);
  *             schema:
  *               $ref: '#/components/schemas/User'
  */
-router.get('/profile', userController.getUserProfile);
+router.get('/profile', protect, userController.getUserProfile);
 
 /**
  * @swagger
@@ -162,6 +173,36 @@ router.get('/profile', userController.getUserProfile);
  *         description: No autorizado
  */
 router.put('/profile', protect, userController.updateUserProfile);
+
+/**
+ * @swagger
+ * /api/users/profile/{id}:
+ *   get:
+ *     summary: Obtiene el perfil de usuario por UUID (solo admin)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: UUID del usuario
+ *     responses:
+ *       200:
+ *         description: Perfil del usuario
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.get('/profile/:id', protect, authorize('admin'), userController.getUserProfileById);
+
+// Obtener todos los usuarios (clientes y admins)
+router.get('/', protect, authorize('admin'), userController.getAllUsers);
 
 /**
  * @swagger

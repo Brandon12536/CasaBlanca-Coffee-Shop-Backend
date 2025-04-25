@@ -294,6 +294,46 @@ router.get('/user/:user_id', cartController.getCartByUser);
 
 /**
  * @swagger
+ * /api/cart/user/add:
+ *   post:
+ *     summary: Agrega un producto al carrito de un usuario autenticado
+ *     tags: [Cart]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               user_id:
+ *                 type: string
+ *               product_id:
+ *                 type: string
+ *               product_name:
+ *                 type: string
+ *               product_image:
+ *                 type: string
+ *               product_price:
+ *                 type: number
+ *               quantity:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Producto agregado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 cartCount:
+ *                   type: integer
+ */
+router.post('/user/add', cartController.addToCartUser);
+
+/**
+ * @swagger
  * /api/cart/transfer-temp-to-user:
  *   post:
  *     summary: Mueve productos del carrito temporal al carrito del usuario autenticado
@@ -314,6 +354,61 @@ router.get('/user/:user_id', cartController.getCartByUser);
  *         description: Productos transferidos correctamente
  */
 router.post('/transfer-temp-to-user', cartController.transferTempCartToUser);
+
+/**
+ * @swagger
+ * /api/cart/user/delete:
+ *   post:
+ *     summary: Elimina un producto del carrito de un usuario autenticado
+ *     tags: [Cart]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_cart:
+ *                 type: string
+ *                 description: ID del producto en el carrito
+ *     responses:
+ *       200:
+ *         description: Producto eliminado del carrito
+ *       400:
+ *         description: id_cart requerido
+ *       500:
+ *         description: Error eliminando del carrito
+ */
+router.post('/user/delete', cartController.deleteFromCartUser);
+
+/**
+ * @swagger
+ * /api/cart/user/update-qty:
+ *   post:
+ *     summary: Actualiza la cantidad de un producto en el carrito de un usuario autenticado
+ *     tags: [Cart]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               id_cart:
+ *                 type: string
+ *                 description: ID del producto en el carrito
+ *               quantity:
+ *                 type: integer
+ *                 description: Nueva cantidad
+ *     responses:
+ *       200:
+ *         description: Cantidad actualizada
+ *       400:
+ *         description: id_cart y quantity requeridos
+ *       500:
+ *         description: Error actualizando cantidad
+ */
+router.post('/user/update-qty', cartController.updateCartQtyUser);
 
 router.get('/test', (req, res) => {
   res.json({ ok: true });

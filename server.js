@@ -5,7 +5,7 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5050;
 
-
+// Middleware fundamental para que el backend acepte JSON correctamente
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -16,6 +16,8 @@ const orderRoutes = require('./src/routes/orderRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const cartRoutes = require('./src/routes/cartRoutes');
 const reservationRoutes = require('./src/routes/reservationRoutes');
+const paymentRoutes = require('./src/routes/paymentRoutes');
+const stripeRoutes = require('./src/routes/stripeRoutes');
 const { swaggerUi, swaggerSpec } = require('./src/swagger');
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -25,6 +27,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/reservaciones', reservationRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 app.get('/', (req, res) => {
   res.send('API de CasaBlanca Coffee Shop funcionando correctamente');

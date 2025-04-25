@@ -107,6 +107,34 @@ El servidor correrá por defecto en el puerto **5050**.
 - La documentación Swagger está disponible en `/api-docs`.
 - La estructura modular facilita el mantenimiento y escalabilidad.
 
+## Ejecución en desarrollo con nodemon
+
+Durante el desarrollo, puedes usar **nodemon** para reiniciar automáticamente el servidor cada vez que guardes cambios en los archivos fuente.
+
+### ¿Qué es este mensaje?
+Cuando ves en consola:
+
+```
+[nodemon] starting `node server.js`
+```
+
+Significa que nodemon está lanzando tu aplicación ejecutando el archivo principal (`server.js`). Si realizas cambios y guardas, nodemon reiniciará el proceso para reflejar los cambios sin que tengas que detener y volver a iniciar manualmente el servidor.
+
+### ¿Cómo usar nodemon?
+1. Instala nodemon globalmente (si no lo tienes):
+   ```bash
+   npm install -g nodemon
+   ```
+2. Inicia el servidor en modo desarrollo:
+   ```bash
+   nodemon server.js
+   ```
+   o usa el script definido en tu `package.json`:
+   ```bash
+   npm run dev
+   ```
+3. Observa la consola. Cada vez que veas el mensaje `[nodemon] starting \\`node server.js\\``, tu servidor se está reiniciando automáticamente.
+
 ## Reservaciones
 
 - Se añadieron las nuevas APIs de **reservaciones**:
@@ -117,6 +145,84 @@ El servidor correrá por defecto en el puerto **5050**.
   - **DELETE** `/api/reservaciones/{id}` — Elimina una reservación por ID.
   - Los datos gestionados incluyen: nombre completo, correo electrónico, fecha y hora de visita, número de personas, notas adicionales y teléfono.
   - Documentación Swagger disponible para estas rutas bajo la etiqueta `Reservaciones`.
+
+## Endpoints de pagos (Stripe)
+
+### POST `/api/stripe/create-payment-intent`
+Crea un PaymentIntent de Stripe para iniciar el proceso de pago.
+
+**Request Body:**
+```json
+{
+  "amount": 1000,
+  "currency": "mxn",
+  "user_id": "<id_usuario>"
+}
+```
+- `amount`: Monto en centavos (ej. 1000 = $10.00)
+- `currency`: Moneda (por defecto `mxn`)
+- `user_id`: ID del usuario autenticado
+
+**Respuesta exitosa:**
+```json
+{
+  "client_secret": "..."
+}
+```
+
+---
+
+### POST `/api/stripe/webhook`
+Webhook de Stripe para registrar orden y pago tras pago exitoso. **Uso interno.**
+
+- Recibe eventos de Stripe (objeto crudo del webhook).
+- No requiere autenticación manual.
+
+**Respuesta exitosa:**
+```json
+{
+  "received": true
+}
+```
+
+---
+
+### POST `/api/stripe/checkout`
+Registra la orden y el pago directo desde el frontend (requiere autenticación Bearer JWT).
+
+**Request Body:**
+```json
+{
+  "cart": [
+    { "product_id": "...", "quantity": 2, "price": 150 },
+    ...
+  ],
+  "shippingAddress": "Dirección de envío",
+  "paymentMethod": "card",
+  "stripePaymentId": "...",
+  "amount": 1000,
+  "currency": "mxn",
+  "receiptUrl": "https://...",
+  "stripeEventData": { }
+}
+```
+- `cart`: Array de productos en el carrito
+- `shippingAddress`: Dirección de envío
+- `paymentMethod`: Método de pago (ej. `card`)
+- `stripePaymentId`: ID del pago en Stripe
+- `amount`: Monto total de la orden
+- `currency`: Moneda
+- `receiptUrl`: URL del recibo de Stripe
+- `stripeEventData`: Datos adicionales del evento de Stripe (opcional)
+
+**Respuesta exitosa:**
+```json
+{
+  "success": true,
+  "orderId": 123
+}
+```
+
 ## Cambios recientes
 - Se corrigió el filtrado acumulativo (puedes combinar búsqueda, categoría, precio y recientes).
 - El backend traduce correctamente los valores de categoría del frontend.

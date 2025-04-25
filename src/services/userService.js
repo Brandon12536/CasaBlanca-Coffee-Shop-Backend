@@ -114,6 +114,14 @@ const deleteUser = async (id) => {
 };
 
 
+const getAllUsers = async () => {
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .select('*');
+  if (error) throw error;
+  return data;
+};
+
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
     expiresIn: '30d'
@@ -125,5 +133,6 @@ module.exports = {
   loginUser,
   getUserProfile,
   updateUserProfile,
-  deleteUser
+  deleteUser,
+  getAllUsers
 };
