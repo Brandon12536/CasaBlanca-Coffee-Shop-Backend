@@ -124,3 +124,25 @@ CREATE TABLE reservaciones (
 );
 
 create policy "Allow all cart operations" on public.cart for all using (true);
+
+
+create table public.reviews (
+  id_reviews uuid primary key default gen_random_uuid(),
+  user_id uuid references public.users(id) on delete cascade,
+  product_id uuid references public.products(id) on delete cascade,
+  comment text not null,
+  rating integer check (rating >= 1 and rating <= 5),
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- Habilitar RLS para reviews
+alter table public.reviews enable row level security;
+
+-- Política para permitir a los usuarios operar solo sobre sus propias reseñas
+create policy "Reviews: solo dueño puede operar" on public.reviews
+  for all
+  using (auth.uid()::uuid = user_id);
+
+-- Permitir SELECT a todos para reviews (opcional, útil para mostrar reseñas públicas)
+create policy "Allow all select reviews" on public.reviews for select using (true);
+create policy "Allow all insert reviews" on public.reviews for insert using (true);

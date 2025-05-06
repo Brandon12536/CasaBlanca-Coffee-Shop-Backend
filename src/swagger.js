@@ -22,6 +22,18 @@ const swaggerOptions = {
         },
       },
       schemas: {
+        Review: {
+          type: 'object',
+          properties: {
+            id_reviews: { type: 'string', format: 'uuid', description: 'ID único de la reseña' },
+            user_id: { type: 'string', format: 'uuid', description: 'ID del usuario que deja la reseña' },
+            product_id: { type: 'string', format: 'uuid', description: 'ID del producto reseñado' },
+            comment: { type: 'string', description: 'Comentario del usuario' },
+            rating: { type: 'integer', minimum: 1, maximum: 5, description: 'Calificación (1-5 estrellas)' },
+            created_at: { type: 'string', format: 'date-time', description: 'Fecha de creación de la reseña' }
+          },
+          required: ['user_id', 'product_id', 'comment', 'rating']
+        },
         CartTempItem: {
           type: 'object',
           properties: {
@@ -117,6 +129,128 @@ const swaggerOptions = {
       }
     },
     paths: {
+      '/api/reviews': {
+        post: {
+          tags: ['Reviews'],
+          summary: 'Crear una nueva reseña',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    user_id: { type: 'string', format: 'uuid' },
+                    product_id: { type: 'string', format: 'uuid' },
+                    comment: { type: 'string' },
+                    rating: { type: 'integer', minimum: 1, maximum: 5 }
+                  },
+                  required: ['user_id', 'product_id', 'comment', 'rating']
+                }
+              }
+            }
+          },
+          responses: {
+            201: {
+              description: 'Reseña creada exitosamente',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Review' }
+                }
+              }
+            },
+            400: { description: 'Error de validación o de base de datos' }
+          }
+        }
+      },
+      '/api/reviews/product/{productId}': {
+        get: {
+          tags: ['Reviews'],
+          summary: 'Obtener todas las reseñas de un producto',
+          parameters: [
+            { name: 'productId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' }, description: 'ID del producto' }
+          ],
+          responses: {
+            200: {
+              description: 'Lista de reseñas del producto',
+              content: {
+                'application/json': {
+                  schema: { type: 'array', items: { $ref: '#/components/schemas/Review' } }
+                }
+              }
+            },
+            400: { description: 'Error al consultar reseñas' }
+          }
+        }
+      },
+      '/api/reviews/user/{userId}': {
+        get: {
+          tags: ['Reviews'],
+          summary: 'Obtener todas las reseñas de un usuario',
+          parameters: [
+            { name: 'userId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' }, description: 'ID del usuario' }
+          ],
+          responses: {
+            200: {
+              description: 'Lista de reseñas del usuario',
+              content: {
+                'application/json': {
+                  schema: { type: 'array', items: { $ref: '#/components/schemas/Review' } }
+                }
+              }
+            },
+            400: { description: 'Error al consultar reseñas' }
+          }
+        }
+      },
+      '/api/reviews/{id_reviews}': {
+        put: {
+          tags: ['Reviews'],
+          summary: 'Actualizar una reseña',
+          parameters: [
+            { name: 'id_reviews', in: 'path', required: true, schema: { type: 'string', format: 'uuid' }, description: 'ID de la reseña' }
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    comment: { type: 'string' },
+                    rating: { type: 'integer', minimum: 1, maximum: 5 }
+                  },
+                  required: ['comment', 'rating']
+                }
+              }
+            }
+          },
+          responses: {
+            200: {
+              description: 'Reseña actualizada exitosamente',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/Review' }
+                }
+              }
+            },
+            400: { description: 'Error al actualizar reseña' },
+            404: { description: 'Reseña no encontrada' }
+          }
+        },
+        delete: {
+          tags: ['Reviews'],
+          summary: 'Eliminar una reseña',
+          parameters: [
+            { name: 'id_reviews', in: 'path', required: true, schema: { type: 'string', format: 'uuid' }, description: 'ID de la reseña' }
+          ],
+          responses: {
+            200: { description: 'Reseña eliminada exitosamente' },
+            400: { description: 'Error al eliminar reseña' },
+            404: { description: 'Reseña no encontrada' }
+          }
+        }
+      },
       '/api/reservaciones': {
         post: {
           tags: ['Reservaciones'],

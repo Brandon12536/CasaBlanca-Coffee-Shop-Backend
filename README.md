@@ -146,6 +146,83 @@ Significa que nodemon está lanzando tu aplicación ejecutando el archivo princi
   - Los datos gestionados incluyen: nombre completo, correo electrónico, fecha y hora de visita, número de personas, notas adicionales y teléfono.
   - Documentación Swagger disponible para estas rutas bajo la etiqueta `Reservaciones`.
 
+## Endpoints de Reseñas (Reviews) ⭐📝
+
+### ✍️ Crear reseña
+- **POST** `/api/reviews`
+- **Body JSON:**
+```json
+{
+  "user_id": "uuid-del-usuario",
+  "product_id": "uuid-del-producto",
+  "comment": "¡Muy buen café!",
+  "rating": 5
+}
+```
+- **Response 201:**
+```json
+{
+  "id_reviews": "uuid-generado",
+  "user_id": "uuid-del-usuario",
+  "product_id": "uuid-del-producto",
+  "comment": "¡Muy buen café!",
+  "rating": 5,
+  "created_at": "2025-05-06T12:00:00.000Z"
+}
+```
+
+### 🔍 Obtener reseñas de un producto
+- **GET** `/api/reviews/product/{productId}`
+- **Response 200:**
+```json
+[
+  {
+    "id_reviews": "uuid1",
+    "user_id": "uuid-usuario",
+    "product_id": "uuid-producto",
+    "comment": "Excelente calidad",
+    "rating": 5,
+    "created_at": "2025-05-06T12:00:00.000Z"
+  }
+]
+```
+
+### 👤 Obtener reseñas de un usuario
+- **GET** `/api/reviews/user/{userId}`
+- **Response 200:** igual al anterior pero filtrado por usuario.
+
+### 📝 Editar reseña
+- **PUT** `/api/reviews/{id_reviews}`
+- **Body JSON:**
+```json
+{
+  "comment": "Actualización del comentario",
+  "rating": 4
+}
+```
+- **Response 200:**
+```json
+{
+  "id_reviews": "uuid1",
+  "user_id": "uuid-usuario",
+  "product_id": "uuid-producto",
+  "comment": "Actualización del comentario",
+  "rating": 4,
+  "created_at": "2025-05-06T12:00:00.000Z"
+}
+```
+
+### 🗑️ Eliminar reseña
+- **DELETE** `/api/reviews/{id_reviews}`
+- **Response 200:**
+```json
+{
+  "message": "Review deleted"
+}
+```
+
+---
+
 ## Endpoints de pagos (Stripe)
 
 ### POST `/api/stripe/create-payment-intent`
