@@ -304,6 +304,7 @@ Registra la orden y el pago directo desde el frontend (requiere autenticación B
 - Se corrigió el filtrado acumulativo (puedes combinar búsqueda, categoría, precio y recientes).
 - El backend traduce correctamente los valores de categoría del frontend.
 - Documentación Swagger actualizada para reflejar la apertura de la ruta y los filtros disponibles.
+- Se integraron nuevos endpoints para las reseñas de clientes: crear, editar, actualizar y eliminar reseñas en los productos.
 
 ---
 
