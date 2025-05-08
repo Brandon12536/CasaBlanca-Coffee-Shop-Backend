@@ -13,4 +13,11 @@ supabase link --project-ref maazrhbydrkvjtgoijiw  (reference_id de tu proyecto)
 // Para el siguiente es tener necesario tener descargado y corriendo docker desktop //
 
 
-supabase db dump -f "D:\Users\gonza\Downloads\schema_only.sql"        // Ruta donde quieres que se guarde el sql
+// Ruta donde quieres que se guarde el sql
+
+
+Get-Content `
+  "D:\Users\gonza\Downloads\schema_only.sql", `
+  "D:\Users\gonza\Downloads\data_only.sql" `
+| Set-Content `
+  "D:\Users\gonza\Downloads\full_dump.sql"
