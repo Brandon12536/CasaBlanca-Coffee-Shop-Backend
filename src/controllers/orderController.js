@@ -1,25 +1,24 @@
 const orderService = require("../services/orderService");
+const { pesosToCents, centsToPesos } = require("../utils/moneyUtils");
 
 exports.createOrder = async (req, res) => {
   try {
-    const { items, total, shipping_address_id, payment_method } = req.body;
+    const { items, total, ...rest } = req.body;
 
-    if (!items || !total || !shipping_address_id || !payment_method) {
-      return res.status(400).json({
-        message: "Por favor, proporcione todos los campos requeridos",
-      });
-    }
-
-    const order = await orderService.createOrder({
+    // Validación y conversión SOLO al crear la orden
+    const orderData = {
+      ...rest,
       user_id: req.user.id,
-      items,
-      total,
-      shipping_address_id,
-      payment_method,
       status: "pending",
-    });
+      total: pesosToCents(total),
+      items: items.map((item) => ({
+        ...item,
+        price: pesosToCents(item.price),
+      })),
+    };
 
-    res.status(201).json(order);
+    const order = await orderService.createOrder(orderData);
+    res.status(201).json(order); // Devuelve los datos directos de la BD
   } catch (error) {
     res.status(400).json({
       message: "Error al crear la orden",
@@ -42,11 +41,11 @@ exports.getAllOrders = async (req, res) => {
 
 exports.getUserOrders = async (req, res) => {
   try {
-    const orders = await orderService.getUserOrders(req.user.id);
-    res.status(200).json(orders);
+    const orders = await orderService.getUserOrdersWithProducts(req.user.id);
+    res.status(200).json(orders); // Datos directos sin modificar
   } catch (error) {
     res.status(500).json({
-      message: "Error al obtener órdenes del usuario",
+      message: "Error al obtener órdenes",
       error: error.message,
     });
   }
@@ -56,12 +55,23 @@ exports.getOrderById = async (req, res) => {
   try {
     const order = await orderService.getOrderById(req.params.id);
 
-    // Sólo el dueño o admin puede ver
+    // Solo el dueño o admin puede ver
     if (order.user_id.toString() !== req.user.id && req.user.role !== "admin") {
       return res.status(403).json({ message: "No autorizado" });
     }
 
-    res.status(200).json(order);
+    res.status(200).json({
+      ...order,
+      total: centsToPesos(order.total),
+      items: order.items.map((item) => ({
+        ...item,
+        price: centsToPesos(item.price),
+        product: {
+          ...item.product,
+          price: centsToPesos(item.product.price),
+        },
+      })),
+    });
   } catch (error) {
     res.status(500).json({
       message: "Error al obtener la orden",
@@ -78,10 +88,12 @@ exports.updateOrderStatus = async (req, res) => {
         message: "Por favor, proporcione el estado de la orden",
       });
     }
+
     const updatedOrder = await orderService.updateOrderStatus(
       req.params.id,
       status
     );
+
     res.status(200).json(updatedOrder);
   } catch (error) {
     res.status(400).json({

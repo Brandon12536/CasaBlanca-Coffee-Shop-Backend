@@ -1,98 +1,106 @@
-const supabase = require('../config/supabase');
+const supabase = require("../config/supabase");
+const { pesosToCents, centsToPesos } = require("../utils/moneyUtils");
 
-const TABLE_NAME = 'orders';
-const ITEMS_TABLE = 'order_items';
-
+const ORDERS_TABLE = "orders";
+const ORDER_ITEMS_TABLE = "order_items";
+const PRODUCTS_TABLE = "products";
 
 const createOrder = async (orderData) => {
-
-  const { items, ...orderDetails } = orderData;
-  
-
   const { data: order, error: orderError } = await supabase
-    .from(TABLE_NAME)
-    .insert([orderDetails])
+    .from(ORDERS_TABLE)
+    .insert([orderData])
     .select();
-  
-  if (orderError) throw orderError;
-  
 
-  if (items && items.length > 0) {
-    const orderItems = items.map(item => ({
-      order_id: order[0].id,
-      product_id: item.product_id,
-      quantity: item.quantity,
-      price: item.price
-    }));
-    
-    const { error: itemsError } = await supabase
-      .from(ITEMS_TABLE)
-      .insert(orderItems);
-    
+  if (orderError) throw orderError;
+
+  if (orderData.items && orderData.items.length > 0) {
+    const { error: itemsError } = await supabase.from(ORDER_ITEMS_TABLE).insert(
+      orderData.items.map((item) => ({
+        order_id: order[0].id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price: item.price, // Ya viene en centavos del controller
+      }))
+    );
+
     if (itemsError) throw itemsError;
   }
-  
 
   return getOrderById(order[0].id);
 };
 
-
 const getAllOrders = async () => {
-  const { data, error } = await supabase
-    .from(TABLE_NAME)
-    .select('*');
-  
+  const { data, error } = await supabase.from(ORDERS_TABLE).select("*");
+
   if (error) throw error;
-  return data;
+
+  return data.map((order) => ({
+    ...order,
+    total: centsToPesos(order.total),
+    items: order.items?.map((item) => ({
+      ...item,
+      price: centsToPesos(item.price),
+      product: {
+        ...item.product,
+        price: centsToPesos(item.product?.price),
+      },
+    })),
+  }));
 };
 
+// Todos los métodos de consulta DEVUELVEN LOS DATOS DIRECTOS
+const getUserOrdersWithProducts = async (userId) => {
+  const { data: orders, error } = await supabase
+    .from(ORDERS_TABLE)
+    .select(`
+      *,
+      items:${ORDER_ITEMS_TABLE}(
+        *,
+        product:${PRODUCTS_TABLE}(*)
+      )
+    `)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return orders || [];
+};
 
 const getUserOrders = async (userId) => {
-  const { data, error } = await supabase
-    .from(TABLE_NAME)
-    .select('*')
-    .eq('user_id', userId);
-  
-  if (error) throw error;
-  return data;
+  return getUserOrdersWithProducts(userId);
 };
 
-
+// Eliminar todas las conversiones en los demás métodos
 const getOrderById = async (orderId) => {
-
-  const { data: order, error: orderError } = await supabase
-    .from(TABLE_NAME)
-    .select('*')
-    .eq('id', orderId)
+  const { data: order, error } = await supabase
+    .from(ORDERS_TABLE)
+    .select(`
+      *,
+      items:${ORDER_ITEMS_TABLE}(
+        *,
+        product:${PRODUCTS_TABLE}(*)
+      )
+    `)
+    .eq("id", orderId)
     .single();
-  
-  if (orderError) throw orderError;
-  
- 
-  const { data: items, error: itemsError } = await supabase
-    .from(ITEMS_TABLE)
-    .select('*')
-    .eq('order_id', orderId);
-  
-  if (itemsError) throw itemsError;
-  
-  
-  return {
-    ...order,
-    items
-  };
-};
 
+  if (error) throw error;
+  return order;
+};
 
 const updateOrderStatus = async (orderId, status) => {
   const { data, error } = await supabase
-    .from(TABLE_NAME)
+    .from(ORDERS_TABLE)
     .update({ status })
-    .eq('id', orderId)
+    .eq("id", orderId)
     .select();
-  
+
   if (error) throw error;
-  return data[0];
+
+  return {
+    ...data[0],
+    total: centsToPesos(data[0].total),
+  };
 };
 
 module.exports = {
@@ -100,5 +108,6 @@ module.exports = {
   getAllOrders,
   getUserOrders,
   getOrderById,
-  updateOrderStatus
+  updateOrderStatus,
+  getUserOrdersWithProducts,
 };

@@ -1,6 +1,6 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const paymentController = require('../controllers/paymentController');
+const paymentController = require("../controllers/paymentController");
 
 // Crear un pago y registrar la orden y los items
 /**
@@ -49,6 +49,6 @@ const paymentController = require('../controllers/paymentController');
  *       201:
  *         description: Pago, orden y items registrados exitosamente
  */
-router.post('/', paymentController.createPaymentAndOrder);
+router.post("/", paymentController.createPaymentAndOrder);
 
 module.exports = router;
