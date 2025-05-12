@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS "public"."order_items" (
     "order_id" "uuid",
     "product_id" "uuid",
     "quantity" integer NOT NULL,
-    "price" numeric NOT NULL
+    "price" integer NOT NULL
 );
 
 ALTER TABLE
@@ -101,7 +101,7 @@ ALTER TABLE
 CREATE TABLE IF NOT EXISTS "public"."orders" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "user_id" "uuid",
-    "total" numeric NOT NULL,
+    "total" integer NOT NULL,
     "payment_method" "text" NOT NULL,
     "status" "text" DEFAULT 'pending' :: "text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "timezone"('utc' :: "text", "now"()),
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS "public"."payments" (
     "order_id" "uuid",
     "user_id" "uuid",
     "stripe_payment_id" "text" NOT NULL,
-    "amount" numeric(10, 2) NOT NULL,
+    "amount" integer NOT NULL,
     "currency" "text" DEFAULT 'mxn' :: "text" NOT NULL,
     "status" "text" DEFAULT 'pending' :: "text" NOT NULL,
     "payment_method" "text",
@@ -138,7 +138,7 @@ CREATE TABLE IF NOT EXISTS "public"."products" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "name" "text" NOT NULL,
     "description" "text" NOT NULL,
-    "price" numeric NOT NULL,
+    "price" integer NOT NULL,
     "category" "text" NOT NULL,
     "image" "text" NOT NULL,
     "available" boolean DEFAULT true NOT NULL,
