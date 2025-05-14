@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CasaBlanca Coffee Shop API</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <span class="coffee-icon">☕️</span>
+                <h1>Casa Blanca Coffee Shop Backend</h1>
+            </div>
+            <p class="subtitle">API</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <div class="card-content">
+                    <h2><span class="icon-wrapper"><i class="fas fa-server"></i></span> ESTATUS DE LA API</h2>
+                    <p class="status-text">El servidor está funcionando correctamente</p>
+                    <div class="status-badge">
+                        <div id="status-indicator" class="status-indicator"></div>
+                        <span id="status-label" class="status-label">Verificando...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-content">
+                    <h2><span class="icon-wrapper"><i class="fas fa-book"></i></span> API DOCS</h2>
+                    <p>Accede a la documentación completa de la API con Swagger UI</p>
+                    <a href="/api-docs" class="btn primary" target="_blank">
+                        <span class="btn-icon"><i class="fas fa-external-link-alt"></i></span> ACCEDER
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-content">
+                    <h2><span class="icon-wrapper"><i class="fas fa-heart-pulse"></i></span> BASE DE DATOS</h2>
+                    <p>Verifica el estado de la conexión con Supabase</p>
+                    <button id="health-check-btn" class="btn secondary">
+                        <span class="btn-icon"><i class="fas fa-stethoscope"></i></span> INICIAR ESCANEO
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 CasaBlanca Coffee Shop. Todos los derechos reservados.</p>
+        </footer>
+    </div>
+
+    <!-- Modal para Health Check -->
+    <div id="health-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3><span class="icon-wrapper"><i class="fas fa-heart-pulse"></i></span> REPORTE DE SISTEMA</h3>
+            <div id="modal-message" class="modal-message">
+                <div class="loader"></div>
+                <p>Verificando conexión...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Verificar el estado de la API al cargar la página
+        window.addEventListener('DOMContentLoaded', async () => {
+            const statusText = document.querySelector('.status-text');
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusLabel = document.getElementById('status-label');
+            
+            // Establecer estado inicial como verificando
+            statusText.textContent = 'Verificando estado del servidor...';
+            statusLabel.textContent = 'Verificando...';
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    // Servidor activo
+                    statusText.textContent = 'El servidor está funcionando correctamente';
+                    statusIndicator.classList.add('online');
+                    statusIndicator.classList.remove('offline');
+                    statusLabel.textContent = 'Activo';
+                } else {
+                    // Servidor con problemas
+                    statusText.textContent = 'Hay problemas con el servidor';
+                    statusIndicator.classList.add('offline');
+                    statusIndicator.classList.remove('online');
+                    statusLabel.textContent = 'Inactivo';
+                }
+            } catch (error) {
+                // Error de conexión
+                statusText.textContent = 'No se pudo conectar con el servidor';
+                statusIndicator.classList.add('offline');
+                statusIndicator.classList.remove('online');
+                statusLabel.textContent = 'Inactivo';
+            }
+        });
+
+        // Modal de Health Check
+        const modal = document.getElementById('health-modal');
+        const btn = document.getElementById('health-check-btn');
+        const span = document.getElementsByClassName('close')[0];
+        const modalMessage = document.getElementById('modal-message');
+
+        btn.onclick = async function() {
+            modal.style.display = 'block';
+            modalMessage.innerHTML = '<div class="loader"></div><p>Verificando conexión...</p>';
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    modalMessage.innerHTML = `
+                        <div class="modal-status success">
+                            <i class="fas fa-check-circle"></i>
+                            <p>${data.message}</p>
+                        </div>
+                    `;
+                } else {
+                    modalMessage.innerHTML = `
+                        <div class="modal-status error">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>Error: ${data.message}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                modalMessage.innerHTML = `
+                    <div class="modal-status error">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Error: No se pudo conectar con el servidor</p>
+                    </div>
+                `;
+            }
+        }
+
+        span.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
