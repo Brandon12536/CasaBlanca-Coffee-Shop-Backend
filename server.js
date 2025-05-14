@@ -1,6 +1,7 @@
 // server.js
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -10,6 +11,9 @@ const PORT = process.env.PORT || 5050;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Servir archivos estáticos desde la carpeta public
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Supabase client (para health checks, etc.)
 const supabase = require("./src/config/supabase");
@@ -40,7 +44,7 @@ app.use("/api/stripe", stripeRoutes);
 
 // Health checks y endpoints de prueba
 app.get("/", (req, res) => {
-  res.send("API de CasaBlanca Coffee Shop funcionando correctamente");
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get("/api/health", async (req, res) => {
