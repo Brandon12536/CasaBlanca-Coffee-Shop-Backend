@@ -1,0 +1,30 @@
+scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+
+scoop install supabase
+
+supabase login
+
+supabase projects list
+
+supabase link --project-ref maazrhbydrkvjtgoijiw  (reference_id de tu proyecto)
+
+//luego te  pedirá la contraseña de tu base de datos, que sino la recuerdas la puedes resetear desde la web de supabase en setting project -> database -> database password
+
+// Para el siguiente paso es tener necesario tener descargado y corriendo docker desktop //
+
+// solo schema          supabase db dump -f schema_only.sql
+
+supabase db dump -f D:\Users\gonza\Downloads\solo_esquema.sql
+
+// solo data            supabase db dump --data-only -f data_only.sql
+
+supabase db dump --data-only -f D:\Users\gonza\Downloads\data_only.sql
+
+// Ruta donde quieres que se guarde el sql
+
+
+Get-Content `
+  "D:\Users\gonza\Downloads\schema_only.sql", `
+  "D:\Users\gonza\Downloads\data_only.sql" `
+| Set-Content `
+  "D:\Users\gonza\Downloads\full_dump.sql"

@@ -1,105 +1,90 @@
-const stripe = require('../config/stripe');
-const supabase = require('../config/supabase');
+const stripe = require("../config/stripe");
+const supabase = require("../config/supabase");
+const { pesosToCents } = require("../utils/moneyUtils");
 
-/**
- * Crea un pago y una orden en la base de datos.
- * 
- * @param {Object} req - Objeto de solicitud HTTP.
- * @param {Object} res - Objeto de respuesta HTTP.
- */
 exports.createPaymentAndOrder = async (req, res) => {
-  const {
-    user_id,
-    total,
-    shipping_address,
-    payment_method,
-    status = 'pending',
-    items = [],
-    stripe_payment_id,
-    amount,
-    currency = 'mxn',
-    receipt_url
-  } = req.body;
-  const totalInt = parseInt(total, 10);
-  const amountInt = parseInt(amount, 10);
+  const { total, amount, items, ...rest } = req.body;
+  const paymentData = rest; // Todos los demás campos de pago
 
-  const client = supabase;
-  let order, payment;
+  // Función mejorada para manejar la conversión a centavos
+  const parseToCents = (value) => {
+    // Si el valor ya es número y mayor o igual a 100, asumir que ya está en centavos
+    if (typeof value === "number" && value >= 100) {
+      return Math.round(value);
+    }
+
+    // Si es string, limpiar y convertir a número
+    if (typeof value === "string") {
+      value = parseFloat(value.replace(/[^0-9.]/g, ""));
+    }
+
+    // Validar que sea un número válido
+    if (isNaN(value)) {
+      throw new Error("El monto proporcionado no es válido");
+    }
+
+    // Si el valor es menor que 100, asumir que está en pesos y convertir a centavos
+    if (value < 100) {
+      console.log(
+        `Conversión: ${value} pesos → ${Math.round(value * 100)} centavos`
+      );
+      return Math.round(value * 100);
+    }
+
+    // Si ya es mayor o igual a 100, asumir que ya está en centavos
+    return Math.round(value);
+  };
 
   try {
-   
-    const { data: orderData, error: orderError } = await client
-      .from('orders')
-      .insert([
-        {
-          user_id,
-          total,
-          shipping_address,
-          payment_method,
-          status
-        }
-      ])
+    // Convertir los montos a centavos
+    const totalInCents = parseToCents(total);
+    const amountInCents = parseToCents(amount);
+
+    console.log(`[DEBUG] Conversión final:
+      Total recibido: ${total} → ${totalInCents} centavos
+      Amount recibido: ${amount} → ${amountInCents} centavos`);
+
+    // Insertar en orders
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .insert([{ total: totalInCents, ...rest }])
       .select()
       .single();
-    if (orderError) throw orderError;
-    order = orderData;
 
-   
-    const orderItems = items.map(item => ({
-      order_id: order.id,
-      product_id: item.product_id,
-      quantity: item.quantity,
-      price: item.price
+    if (orderError) throw orderError;
+
+    // Insertar items (convertir cada precio a centavos)
+    const orderItems = items.map((item) => ({
+      ...item,
+      price: parseToCents(item.price),
     }));
-    const { error: itemsError } = await client
-      .from('order_items')
+
+    const { error: itemsError } = await supabase
+      .from("order_items")
       .insert(orderItems);
     if (itemsError) throw itemsError;
 
-    
-    const { data: paymentData, error: paymentError } = await client
-      .from('payments')
-      .insert([
-        {
-          order_id: order.id,
-          user_id,
-          stripe_payment_id,
-          amount,
-          currency,
-          status,
-          payment_method,
-          receipt_url
-        }
-      ])
-      .select()
-      .single();
+    // Insertar pago
+    const { error: paymentError } = await supabase.from("payments").insert([
+      {
+        amount: amountInCents,
+        ...paymentData,
+      },
+    ]);
+
     if (paymentError) throw paymentError;
-    payment = paymentData;
 
-    // Limpiar carrito temporal del usuario tras pago exitoso
-    try {
-      if (user_id) {
-        await client
-          .from('cart_temp')
-          .delete()
-          .eq('user_id', user_id);
-      }
-    } catch (cartClearError) {
-      console.error('Error limpiando carrito:', cartClearError.message);
-      // No detenemos el flujo si falla limpiar el carrito
-    }
-
-    // Marcar la orden como 'completed' si el pago fue exitoso
-    if (payment.status === 'succeeded' || status === 'succeeded' || status === 'completed') {
-      await client
-        .from('orders')
-        .update({ status: 'completed' })
-        .eq('id', order.id);
-    }
-
-    return res.status(201).json({ success: true, order, payment });
-  } catch (err) {
-    console.error('Error al registrar pago y orden:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    res.status(201).json({
+      success: true,
+      amount_in_cents: amountInCents,
+      total_in_cents: totalInCents,
+    });
+  } catch (error) {
+    console.error("[ERROR] En paymentController:", error);
+    res.status(500).json({
+      error: "Error al procesar pago",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 };

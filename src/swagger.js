@@ -22,14 +22,24 @@ const swaggerOptions = {
         },
       },
       schemas: {
+        ReviewCreate: {
+          type: 'object',
+          properties: {
+            user_id: { type: 'string', description: 'ID del usuario que hace la reseña' },
+            product_id: { type: 'string', description: 'ID del producto reseñado' },
+            comment: { type: 'string', description: 'Comentario de la reseña' },
+            rating: { type: 'integer', description: 'Calificación (1-5)' }
+          },
+          required: ['user_id', 'product_id', 'comment', 'rating']
+        },
         Review: {
           type: 'object',
           properties: {
-            id_reviews: { type: 'string', format: 'uuid', description: 'ID único de la reseña' },
-            user_id: { type: 'string', format: 'uuid', description: 'ID del usuario que deja la reseña' },
-            product_id: { type: 'string', format: 'uuid', description: 'ID del producto reseñado' },
-            comment: { type: 'string', description: 'Comentario del usuario' },
-            rating: { type: 'integer', minimum: 1, maximum: 5, description: 'Calificación (1-5 estrellas)' },
+            id_reviews: { type: 'string', description: 'ID único de la reseña' },
+            user_id: { type: 'string', description: 'ID del usuario que hizo la reseña' },
+            product_id: { type: 'string', description: 'ID del producto reseñado' },
+            comment: { type: 'string', description: 'Comentario de la reseña' },
+            rating: { type: 'integer', description: 'Calificación (1-5)' },
             created_at: { type: 'string', format: 'date-time', description: 'Fecha de creación de la reseña' }
           },
           required: ['user_id', 'product_id', 'comment', 'rating']

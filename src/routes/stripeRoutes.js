@@ -1,7 +1,7 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const stripeController = require('../controllers/stripeController');
-const { protect } = require('../middleware/authMiddleware');
+const stripeController = require("../controllers/stripeController");
+const { protect } = require("../middleware/authMiddleware");
 
 /**
  * @swagger
@@ -23,7 +23,7 @@ const { protect } = require('../middleware/authMiddleware');
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/create-payment-intent', stripeController.createPaymentIntent);
+router.post("/create-payment-intent", stripeController.createPaymentIntent);
 
 /**
  * @swagger
@@ -46,7 +46,11 @@ router.post('/create-payment-intent', stripeController.createPaymentIntent);
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/webhook', express.raw({ type: 'application/json' }), stripeController.stripeWebhook);
+router.post(
+  "/webhook",
+  express.raw({ type: "application/json" }),
+  stripeController.stripeWebhook
+);
 
 /**
  * @swagger
@@ -70,6 +74,6 @@ router.post('/webhook', express.raw({ type: 'application/json' }), stripeControl
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/checkout', protect, stripeController.checkout);
+router.post("/checkout", protect, stripeController.checkout);
 
 module.exports = router;

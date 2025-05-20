@@ -1,42 +1,55 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+// src/models/User.js
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const addressSchema = require("./Address");
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 6,
+    },
+    phone: {
+      type: String,
+      trim: true,
+    },
+    role: {
+      type: String,
+      enum: ["customer", "admin"],
+      default: "customer",
+    },
+    // array de direcciones embebidas
+    addresses: {
+      type: [addressSchema],
+      default: [],
+    },
   },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true,
-    lowercase: true
-  },
-  password: {
-    type: String,
-    required: true,
-    minlength: 6
-  },
-  role: {
-    type: String,
-    enum: ['customer', 'admin'],
-    default: 'customer'
+  {
+    timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
   }
-}, {
-  timestamps: true
-});
+);
 
-
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+// Comparar contraseña
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
-
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
+// Hashear contraseña antes de guardar
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -46,4 +59,4 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model("User", userSchema);
