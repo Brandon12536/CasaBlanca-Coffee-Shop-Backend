@@ -203,6 +203,9 @@ CREATE TABLE IF NOT EXISTS "public"."users" (
 ALTER TABLE
     "public"."users" OWNER TO "postgres";
 
+ALTER TABLE "public"."users"
+ADD COLUMN "telefono" VARCHAR(10);
+
 ALTER TABLE
     ONLY "public"."reservaciones"
 ALTER COLUMN

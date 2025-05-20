@@ -28,6 +28,11 @@ const { protect, authorize } = require('../middleware/authMiddleware');
  *         password:
  *           type: string
  *           description: Contraseña encriptada
+ *         telefono:
+ *           type: string
+ *           description: Teléfono a 10 dígitos
+ *           minLength: 10
+ *           maxLength: 10
  *         role:
  *           type: string
  *           description: Rol del usuario (ej. cliente, admin)
@@ -41,6 +46,7 @@ const { protect, authorize } = require('../middleware/authMiddleware');
  *         name: "Juan Pérez"
  *         email: "juan@example.com"
  *         password: "hashedpassword123"
+ *         telefono: "5512345678"
  *         role: "cliente"
  *         created_at: "2025-04-17T15:17:19Z"
  */
@@ -159,7 +165,7 @@ router.get('/profile', protect, userController.getUserProfile);
  *           example:
  *             name: "Nuevo Nombre"
  *             email: "nuevo@email.com"
- *             password: "nuevacontraseña"
+ *             telefono: "5512345678"
  *     responses:
  *       200:
  *         description: Perfil actualizado

@@ -22,6 +22,28 @@ const swaggerOptions = {
         },
       },
       schemas: {
+        User: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid', description: 'ID único del usuario' },
+            name: { type: 'string', description: 'Nombre completo del usuario' },
+            email: { type: 'string', description: 'Correo electrónico único' },
+            password: { type: 'string', description: 'Contraseña encriptada' },
+            telefono: { type: 'string', minLength: 10, maxLength: 10, description: 'Teléfono a 10 dígitos' },
+            role: { type: 'string', description: 'Rol del usuario (ej. cliente, admin)', example: 'cliente' },
+            created_at: { type: 'string', format: 'date-time', description: 'Fecha de creación' }
+          },
+          required: ['name', 'email', 'password'],
+          example: {
+            id: "d290f1ee-6c54-4b01-90e6-d701748f0851",
+            name: "Juan Pérez",
+            email: "juan@example.com",
+            password: "hashedpassword123",
+            telefono: "5512345678",
+            role: "cliente",
+            created_at: "2025-04-17T15:17:19Z"
+          }
+        },
         ReviewCreate: {
           type: 'object',
           properties: {

@@ -28,6 +28,7 @@ const registerUser = async (userData) => {
       id: data[0].id,
       name: data[0].name,
       email: data[0].email,
+      telefono: data[0].telefono,
       role: data[0].role
     },
     token
@@ -92,7 +93,7 @@ const updateUserProfile = async (userId, userData) => {
     .from(TABLE_NAME)
     .update(updateData)
     .eq('id', userId)
-    .select('id, name, email, role');
+    .select('id, name, email, telefono, role');
   if (error) throw error;
   return data[0];
 };

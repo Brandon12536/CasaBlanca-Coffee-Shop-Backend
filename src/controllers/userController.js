@@ -3,7 +3,7 @@ const userService = require('../services/userService');
 
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, telefono } = req.body;
     
  
     if (!name || !email || !password) {
@@ -15,6 +15,7 @@ exports.registerUser = async (req, res) => {
       name,
       email,
       password,
+      telefono,
       role: role || 'customer'
     });
     
@@ -75,7 +76,7 @@ exports.getUserProfileById = async (req, res) => {
 exports.updateUserProfile = async (req, res) => {
   try {
     const updatedUser = await userService.updateUserProfile(req.user.id, req.body);
-    res.status(200).json(updatedUser);
+    res.status(200).json({ ...updatedUser, telefono: updatedUser.telefono });
   } catch (error) {
     res.status(400).json({ message: 'Error al actualizar perfil de usuario', error: error.message });
   }
