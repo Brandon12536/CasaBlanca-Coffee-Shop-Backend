@@ -42,14 +42,15 @@ CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
-CREATE
-OR REPLACE FUNCTION "public"."update_updated_at_column"() RETURNS "trigger" LANGUAGE "plpgsql" AS $ $ BEGIN NEW.updated_at = now();
-
-RETURN NEW;
-
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
 END;
-
-$ $;
+$$;
 
 ALTER FUNCTION "public"."update_updated_at_column"() OWNER TO "postgres";
 
@@ -111,6 +112,8 @@ CREATE TABLE IF NOT EXISTS "public"."orders" (
 
 ALTER TABLE
     "public"."orders" OWNER TO "postgres";
+
+ALTER TABLE public.orders ADD COLUMN canceled_at timestamp with time zone;
 
 CREATE TABLE IF NOT EXISTS "public"."payments" (
     "id_payments" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
@@ -561,3 +564,20 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
 
 RESET ALL;
+
+
+CREATE TABLE reservaciones (
+    id_reservaciones SERIAL PRIMARY KEY,
+    nombre_completo TEXT NOT NULL,
+    correo_electronico TEXT NOT NULL,
+    fecha_visita DATE NOT NULL,
+    hora_visita TEXT NOT NULL,
+    numero_personas INTEGER NOT NULL,
+    notas_adicionales TEXT,
+    telefono VARCHAR(10) NOT NULL DEFAULT '',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('America/Mexico_City', now())
+);
+
+CREATE POLICY "Allow all insert reviews" ON public.reviews
+  FOR INSERT
+  WITH CHECK (true);

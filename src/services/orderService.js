@@ -14,6 +14,9 @@ const createOrder = async (orderData) => {
   if (orderError) throw orderError;
 
   if (orderData.items && orderData.items.length > 0) {
+    // LOG: Mostrar los IDs de producto que se intentan insertar
+    console.log("Intentando insertar order_items con product_id:", orderData.items.map(i => i.product_id));
+
     const { error: itemsError } = await supabase.from(ORDER_ITEMS_TABLE).insert(
       orderData.items.map((item) => ({
         order_id: order[0].id,
@@ -23,7 +26,11 @@ const createOrder = async (orderData) => {
       }))
     );
 
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      // LOG: Mostrar el error exacto de Supabase
+      console.error("Error al insertar order_items:", itemsError);
+      throw itemsError;
+    }
   }
 
   return getOrderById(order[0].id);

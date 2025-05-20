@@ -21,12 +21,14 @@ const supabase = require("./src/config/supabase");
 // Rutas
 const productRoutes = require("./src/routes/productRoutes");
 const orderRoutes = require("./src/routes/orderRoutes");
+const cancelOrderRoutes = require("./src/routes/cancelOrderRoutes");
 const userRoutes = require("./src/routes/userRoutes");
 const addressRoutes = require("./src/routes/addressRoutes"); // <-- import
 const cartRoutes = require("./src/routes/cartRoutes");
 const reservationRoutes = require("./src/routes/reservationRoutes");
 const paymentRoutes = require("./src/routes/paymentRoutes");
 const stripeRoutes = require("./src/routes/stripeRoutes");
+const reviewRoutes = require("./src/routes/reviewRoutes");
 
 // Swagger UI
 const { swaggerUi, swaggerSpec } = require("./src/swagger");
@@ -35,12 +37,14 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Montaje de rutas
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/orders", cancelOrderRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/users/addresses", addressRoutes); // <-- monta aquí
 app.use("/api/cart", cartRoutes);
 app.use("/api/reservaciones", reservationRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/stripe", stripeRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 // Health checks y endpoints de prueba
 app.get("/", (req, res) => {
