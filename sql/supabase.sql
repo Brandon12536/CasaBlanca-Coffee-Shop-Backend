@@ -145,4 +145,6 @@ create policy "Reviews: solo dueño puede operar" on public.reviews
 
 -- Permitir SELECT a todos para reviews (opcional, útil para mostrar reseñas públicas)
 create policy "Allow all select reviews" on public.reviews for select using (true);
-create policy "Allow all insert reviews" on public.reviews for insert using (true);
+CREATE POLICY "Allow all insert reviews" ON public.reviews
+  FOR INSERT
+  WITH CHECK (true);

@@ -20,6 +20,8 @@ exports.createPaymentAndOrder = async (req, res) => {
     currency = 'mxn',
     receipt_url
   } = req.body;
+  const totalInt = parseInt(total, 10);
+  const amountInt = parseInt(amount, 10);
 
   const client = supabase;
   let order, payment;

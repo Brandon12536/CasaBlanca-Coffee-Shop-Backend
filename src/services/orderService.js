@@ -21,8 +21,8 @@ const createOrder = async (orderData) => {
     const orderItems = items.map(item => ({
       order_id: order[0].id,
       product_id: item.product_id,
-      quantity: item.quantity,
-      price: item.price
+      quantity: parseInt(item.quantity, 10),
+      price: parseInt(item.price, 10)
     }));
     
     const { error: itemsError } = await supabase

@@ -13,7 +13,7 @@ exports.createOrder = async (req, res) => {
     const order = await orderService.createOrder({
       user_id: req.user.id,
       items,
-      total,
+      total: parseInt(total, 10),
       shipping_address,
       payment_method,
       status: 'pending'

@@ -19,13 +19,13 @@ exports.addToCartTemp = async (req, res) => {
   
       await supabase
         .from('cart_temp')
-        .update({ quantity: existing.quantity + quantity })
+        .update({ quantity: existing.quantity + parseInt(quantity, 10) })
         .eq('id_cart_temp', existing.id_cart_temp);
     } else {
 
       await supabase
         .from('cart_temp')
-        .insert([{ session_id, product_id, product_name, product_image, product_price, quantity }]);
+        .insert([{ session_id, product_id, product_name, product_image, product_price: parseInt(product_price, 10), quantity: parseInt(quantity, 10) }]);
     }
 
     const { count } = await supabase

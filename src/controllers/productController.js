@@ -33,7 +33,8 @@ exports.getProductById = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
   try {
-    const savedProduct = await productService.createProduct(req.body);
+    const productData = { ...req.body, price: parseInt(req.body.price, 10) };
+    const savedProduct = await productService.createProduct(productData);
     res.status(201).json(savedProduct);
   } catch (error) {
     res.status(400).json({ message: 'Error al crear el producto', error: error.message });
@@ -43,7 +44,7 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   try {
-    const updatedProduct = await productService.updateProduct(req.params.id, req.body);
+    const updatedProduct = await productService.updateProduct(req.params.id, { ...req.body, price: parseInt(req.body.price, 10) });
     
     if (!updatedProduct) {
       return res.status(404).json({ message: 'Producto no encontrado' });
