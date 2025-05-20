@@ -2,7 +2,7 @@ const supabase = require('../config/supabase');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Cancela un pedido y actualiza el pago asociado (con reembolso automático)
+
 exports.cancelOrder = async (req, res) => {
   const { order_id, payment_id, user_id, cancellation_reason } = req.body;
   try {
@@ -23,10 +23,10 @@ exports.cancelOrder = async (req, res) => {
 
     let refundResult = null;
     if (payment.status === 'succeeded' || payment.status === 'paid') {
-      // Realizar el reembolso en Stripe
+    
       refundResult = await stripe.refunds.create({
         payment_intent: payment.stripe_payment_id,
-        amount: payment.amount, // en centavos
+        amount: payment.amount, 
       });
       // Actualizar el pago en la base de datos
       await supabase
