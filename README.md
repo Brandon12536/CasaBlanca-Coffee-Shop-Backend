@@ -10,6 +10,8 @@
 
 Backend de la aplicación CasaBlanca Coffee Shop. Proporciona una API RESTful para gestionar productos, órdenes y usuarios, conectándose a una base de datos Supabase.
 
+> 🌐 **Backend Desplegado:** [https://web-production-ff9a.up.railway.app/](https://web-production-ff9a.up.railway.app/)
+
 ## Tecnologías principales
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white&style=for-the-badge)
