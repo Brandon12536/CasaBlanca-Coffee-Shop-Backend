@@ -15,10 +15,48 @@ const categoryMap = {
 };
 
 function processProductData(productData) {
-  if (typeof productData.price === "number") {
-    productData.price = pesosToCents(productData.price);
+  // Si no hay precio, retornar los datos sin modificar
+  if (productData.price === undefined || productData.price === null) {
+    console.log('Precio no proporcionado o nulo');
+    return productData;
   }
-  return productData;
+
+  console.log('Precio recibido:', productData.price, 'tipo:', typeof productData.price);
+  
+  // Crear una copia del objeto para no modificar el original
+  const processedData = { ...productData };
+  
+  // Variable para almacenar el precio procesado
+  let precioProcesado;
+  
+  // Asegurarse de que el precio sea un número
+  if (typeof processedData.price === 'string') {
+    // Si es string, limpiar y convertir a número
+    precioProcesado = parseFloat(processedData.price.toString().replace(/[^0-9.]/g, ''));
+    console.log('Precio convertido a número:', precioProcesado);
+  } else if (typeof processedData.price === 'number') {
+    // Si ya es número, usarlo directamente
+    precioProcesado = processedData.price;
+  } else {
+    // Si no es ni string ni número, establecer a 0
+    precioProcesado = 0;
+  }
+  
+  // Si después de la conversión es NaN, establecer a 0
+  if (isNaN(precioProcesado)) {
+    console.warn('El precio no es un número válido, se establece a 0');
+    precioProcesado = 0;
+  }
+  
+  // Redondear a número entero para Supabase
+  precioProcesado = Math.round(precioProcesado);
+  console.log('Precio redondeado a entero:', precioProcesado);
+  
+  // Asignar el precio procesado
+  processedData.price = precioProcesado;
+  
+  console.log('Datos procesados:', processedData);
+  return processedData;
 }
 
 const getAllProducts = async () => {
@@ -39,7 +77,9 @@ const getProductById = async (id) => {
 };
 
 const createProduct = async (productData) => {
-  const processedData = processProductData(productData);
+  console.log('Datos recibidos en createProduct:', JSON.stringify(productData, null, 2));
+  const processedData = processProductData({...productData});
+  console.log('Datos procesados en createProduct:', JSON.stringify(processedData, null, 2));
 
   const { data, error } = await supabase
     .from(PRODUCTS_TABLE)
@@ -47,22 +87,41 @@ const createProduct = async (productData) => {
     .select();
 
   if (error) throw error;
-  return data[0]; // Devuelve los datos directamente sin conversión
+  return data[0];
 };
 
 const updateProduct = async (id, productData) => {
-  if (typeof productData.price === "number") {
-    productData.price = pesosToCents(productData.price);
+  console.log('=== INICIO updateProduct ===');
+  console.log('ID del producto a actualizar:', id);
+  console.log('Datos recibidos en updateProduct:', JSON.stringify(productData, null, 2));
+  
+  // Verificar el tipo de dato del precio
+  if (productData.price !== undefined) {
+    console.log(`Tipo de dato del precio: ${typeof productData.price}, valor: ${productData.price}`);
   }
+  
+  const processedData = processProductData({...productData});
+  console.log('Datos después de processProductData:', JSON.stringify(processedData, null, 2));
+  
+  console.log('Actualizando en Supabase...');
+  try {
+    const { data, error } = await supabase
+      .from(PRODUCTS_TABLE)
+      .update(processedData)
+      .eq("id", id)
+      .select();
 
-  const { data, error } = await supabase
-    .from(PRODUCTS_TABLE)
-    .update(productData)
-    .eq("id", id)
-    .select();
-
-  if (error) throw error;
-  return data[0]; // Devuelve los datos directamente sin conversión
+    if (error) {
+      console.error('Error al actualizar en Supabase:', error);
+      throw error;
+    }
+    
+    console.log('Actualización exitosa. Datos devueltos:', JSON.stringify(data[0], null, 2));
+    return data[0];
+  } catch (error) {
+    console.error('Error en updateProduct:', error);
+    throw error;
+  }
 };
 
 const deleteProduct = async (id) => {

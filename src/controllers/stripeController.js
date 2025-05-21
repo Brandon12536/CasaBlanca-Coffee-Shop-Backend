@@ -1,5 +1,7 @@
 const stripe = require("../config/stripe");
 const supabase = require("../config/supabase");
+const { sendOrderConfirmation } = require("../services/emailService");
+const { centsToPesos } = require("../utils/moneyUtils");
 
 // Controlador para crear PaymentIntent
 const createPaymentIntent = async (req, res) => {
@@ -130,6 +132,58 @@ const stripeWebhook = async (req, res) => {
       console.log("[STRIPE WEBHOOK] Pago insertado en payments:", paymentData);
       await supabase.from("cart").delete().eq("user_id", user_id);
 
+      // Get user details for email
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("email, name")
+        .eq("id", user_id)
+        .single();
+
+      if (!userError && userData) {
+        console.log('[STRIPE WEBHOOK] Datos del usuario para el correo:', {
+          email: userData.email,
+          name: userData.name
+        });
+        
+        // Get order with items for the email
+        const { data: orderWithItems, error: orderItemsError } = await supabase
+          .from("order_items")
+          .select(`
+            *,
+            products(name as product_name)
+          `)
+          .eq("order_id", order.id);
+          
+        console.log('[STRIPE WEBHOOK] Resultado de la consulta de items:', {
+          items: orderWithItems?.length || 0,
+          error: orderItemsError?.message
+        });
+
+        if (!orderItemsError && orderWithItems) {
+          // Format order data for email
+          const orderForEmail = {
+            ...order,
+            items: orderWithItems.map(item => ({
+              ...item,
+              product_name: item.products?.name || 'Producto sin nombre',
+            }))
+          };
+
+          console.log('[STRIPE WEBHOOK] Enviando correo de confirmación...', {
+            orderId: order.id,
+            email: userData.email
+          });
+
+          try {
+            // Send confirmation email
+            const emailSent = await sendOrderConfirmation(orderForEmail, userData.email, userData.name, order.shipping_address || {});
+            console.log('[STRIPE WEBHOOK] Resultado del envío de correo:', emailSent);
+          } catch (emailError) {
+            console.error('[STRIPE WEBHOOK] Error al enviar el correo:', emailError);
+          }
+        }
+      }
+
       return res.status(200).json({ received: true });
     } catch (err) {
       console.error("Error en webhook Stripe:", err);
@@ -142,39 +196,54 @@ const stripeWebhook = async (req, res) => {
 
 // Controlador para checkout
 const checkout = async (req, res) => {
-  console.log("[checkout] Datos recibidos:", req.body);
+  console.log('[CHECKOUT] Iniciando proceso de checkout');
+  console.log("[checkout] Datos recibidos:", JSON.stringify(req.body, null, 2));
 
   try {
     const {
       payment_data: {
         stripe_payment_id,
         amount,
-        currency,
-        payment_method,
-        status,
+        currency = 'mxn',
+        payment_method = 'card',
+        status = 'succeeded',
       },
       order_data: { items, shipping_address, subtotal },
     } = req.body;
 
-    const user_id = req.user.id;
+    const user_id = req.user?.id;
 
     if (!user_id) {
+      console.error('[CHECKOUT] Error: Usuario no identificado');
       return res.status(400).json({ error: "Usuario no identificado" });
     }
 
     // Validaciones básicas
     if (!stripe_payment_id || !amount || !items || !shipping_address) {
+      console.error('[CHECKOUT] Error: Datos incompletos', {
+        stripe_payment_id: !!stripe_payment_id,
+        amount: !!amount,
+        items: items?.length,
+        shipping_address: !!shipping_address
+      });
       return res.status(400).json({ error: "Datos incompletos" });
     }
 
     // Verificar el pago con Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(
-      stripe_payment_id
-    );
-    if (paymentIntent.status !== "succeeded") {
-      return res.status(400).json({ error: "El pago no fue exitoso" });
+    console.log('[CHECKOUT] Verificando pago con Stripe:', stripe_payment_id);
+    try {
+      const paymentIntent = await stripe.paymentIntents.retrieve(stripe_payment_id);
+      
+      if (paymentIntent.status !== "succeeded") {
+        console.error('[CHECKOUT] El pago no fue exitoso. Estado:', paymentIntent.status);
+        return res.status(400).json({ error: "El pago no fue exitoso" });
+      }
+    } catch (stripeError) {
+      console.error('[CHECKOUT] Error al verificar el pago con Stripe:', stripeError);
+      return res.status(400).json({ error: "Error al verificar el pago con Stripe" });
     }
 
+    console.log('[CHECKOUT] Creando orden en Supabase');
     // Crear la orden en Supabase
     const { data: order, error: orderError } = await supabase
       .from("orders")
@@ -190,21 +259,85 @@ const checkout = async (req, res) => {
       .select()
       .single();
 
-    if (orderError) throw orderError;
-
+    if (orderError) {
+      console.error('[CHECKOUT] Error al crear la orden:', orderError);
+      throw orderError;
+    }
+    
+    console.log('[CHECKOUT] Orden creada:', order.id);
+    
     // Insertar items de la orden
-    const { error: itemsError } = await supabase.from("order_items").insert(
-      items.map((item) => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        price: item.unit_price,
-      }))
-    );
+    console.log('[CHECKOUT] Insertando items de la orden:', items.length);
+    const orderItems = items.map((item) => ({
+      order_id: order.id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      price: item.price || item.unit_price
+    }));
+    
+    console.log('[CHECKOUT] Items a insertar:', JSON.stringify(orderItems, null, 2));
 
-    if (itemsError) throw itemsError;
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .insert(orderItems);
 
+    if (itemsError) {
+      console.error('[CHECKOUT] Error al insertar items:', itemsError);
+      throw itemsError;
+    }
+    
+    // Obtener el usuario para el correo
+    console.log('[CHECKOUT] Obteniendo datos del usuario para el correo');
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("email, name")
+      .eq("id", user_id)
+      .single();
+
+    if (!userError && userData) {
+      console.log('[CHECKOUT] Enviando correo de confirmación a:', userData.email);
+      try {
+        // Obtener detalles completos de los productos
+        const productIds = items.map(item => item.product_id);
+        const { data: products, error: productsError } = await supabase
+          .from('products')
+          .select('id, name, price')
+          .in('id', productIds);
+        
+        if (productsError) throw productsError;
+        
+        // Crear un mapa de productos para búsqueda rápida
+        const productsMap = products.reduce((acc, product) => ({
+          ...acc,
+          [product.id]: product
+        }), {});
+        
+        // Crear orden con información completa para el PDF
+        const orderForEmail = {
+          ...order,
+          items: items.map(item => {
+            const product = productsMap[item.product_id] || {};
+            return {
+              ...item,
+              product_name: product.name || 'Producto sin nombre',
+              price: item.price || item.unit_price || 0
+            };
+          })
+        };
+        
+        console.log('[CHECKOUT] Enviando correo con orden:', JSON.stringify(orderForEmail, null, 2));
+        await sendOrderConfirmation(orderForEmail, userData.email, userData.name, req.body.order_data?.shipping_address || {});
+        console.log('[CHECKOUT] Correo de confirmación enviado exitosamente');
+      } catch (emailError) {
+        console.error('[CHECKOUT] Error al enviar el correo:', emailError);
+        // No fallar la operación si falla el correo
+      }
+    } else {
+      console.error('[CHECKOUT] No se pudo obtener la información del usuario:', userError);
+    }
+    
     // Registrar el pago
+    console.log('[CHECKOUT] Registrando pago en la base de datos');
     const { data: payment, error: paymentError } = await supabase
       .from("payments")
       .insert([
@@ -216,28 +349,33 @@ const checkout = async (req, res) => {
           currency,
           status,
           payment_method,
-          receipt_url: paymentIntent.charges?.data?.[0]?.receipt_url || null,
+          receipt_url: null, // Se actualizará cuando se reciba el webhook
         },
       ])
       .select()
       .single();
 
-    if (paymentError) throw paymentError;
+    if (paymentError) {
+      console.error('[CHECKOUT] Error al registrar el pago:', paymentError);
+      throw paymentError;
+    }
 
     // Limpiar el carrito del usuario
+    console.log('[CHECKOUT] Limpiando carrito del usuario');
     await supabase.from("cart").delete().eq("user_id", user_id);
 
     // Respuesta exitosa
+    console.log('[CHECKOUT] Checkout completado exitosamente');
     return res.status(200).json({
       success: true,
       order_id: order.id,
-      payment_id: payment.id,
+      payment_id: payment.id
     });
   } catch (error) {
-    console.error("[checkout] Error:", error);
+    console.error("[CHECKOUT] Error:", error);
     return res.status(500).json({
       error: "Error al procesar el pago",
-      details: error.message,
+      details: error.message
     });
   }
 };

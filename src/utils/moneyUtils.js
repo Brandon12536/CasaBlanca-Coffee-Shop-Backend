@@ -1,6 +1,6 @@
 /**
  * Convierte un monto monetario a centavos (entero)
- * @param {number|string} amount - El monto a convertir (puede ser en pesos o centavos)
+ * @param {number|string} amount - El monto a convertir (en formato de pesos)
  * @returns {number} El monto en centavos (entero)
  * @throws {Error} Si el monto no es válido
  */
@@ -10,42 +10,50 @@ function pesosToCents(amount) {
     throw new Error("El monto no puede estar vacío");
   }
 
-  // Si ya es número y mayor o igual a 100, asumir que ya está en centavos
-  if (typeof amount === "number") {
-    if (amount >= 100) {
-      return Math.round(amount);
-    }
-    // Si es menor a 100, asumir que está en pesos
-    return Math.round(amount * 100);
-  }
+  let numericValue;
 
-  // Si es string, limpiar y convertir
-  if (typeof amount === "string") {
-    // Eliminar cualquier caracter que no sea dígito o punto decimal
-    const cleaned = amount.replace(/[^0-9.]/g, "");
-
-    // Validar que tenga formato numérico correcto
-    if (!/^\d*\.?\d*$/.test(cleaned)) {
+  // Si ya es número, usarlo directamente
+  if (typeof amount === 'number') {
+    console.log('Valor numérico recibido:', amount);
+    numericValue = amount;
+  } 
+  // Si es string, limpiar y convertir a número
+  else if (typeof amount === 'string') {
+    console.log('Valor string recibido:', amount);
+    // Eliminar cualquier caracter que no sea dígito, punto o coma
+    const cleaned = amount.replace(/[^0-9.,]/g, '');
+    // Reemplazar comas por punto para el parseo
+    const normalized = cleaned.replace(',', '.');
+    
+    console.log('Valor limpio y normalizado:', normalized);
+    
+    // Validar que sea un número válido
+    if (!/^\d*(\.\d{0,2})?$/.test(normalized)) {
       throw new Error("Formato de monto inválido");
     }
-
-    amount = parseFloat(cleaned);
-    if (isNaN(amount)) {
+    
+    numericValue = parseFloat(normalized);
+    if (isNaN(numericValue)) {
       throw new Error("El monto no es un número válido");
     }
+    console.log('Valor numérico parseado:', numericValue);
+  } else {
+    throw new Error("Tipo de dato no soportado para conversión de monto");
   }
 
-  // Si llegamos aquí, amount es un número (ya convertido)
-  // Convertir a centavos solo si es menor que 100 (asumir que está en pesos)
-  const cents = amount < 100 ? Math.round(amount * 100) : Math.round(amount);
-
-  // Validaciones finales
-  if (cents < 0) {
+  // Validar que no sea negativo
+  if (numericValue < 0) {
     throw new Error("El monto no puede ser negativo");
   }
 
+  // Convertir a centavos (multiplicar por 100 y redondear)
+  const cents = Math.round(numericValue * 100);
+  
+  console.log('Valor convertido a centavos:', cents);
+
+  // Validar que sea un entero válido
   if (!Number.isInteger(cents)) {
-    throw new Error("El monto debe ser un número entero (centavos)");
+    throw new Error("Error al convertir el monto a centavos");
   }
 
   return cents;

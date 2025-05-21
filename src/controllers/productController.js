@@ -62,13 +62,7 @@ class ProductController {
     }
 
     try {
-      let productData = req.body;
-
-      // Conversión a centavos para almacenamiento
-      if (productData.price) {
-        productData.price = pesosToCents(productData.price);
-      }
-
+      const productData = req.body;
       const savedProduct = await productService.createProduct(productData);
       res.status(201).json(savedProduct);
     } catch (error) {
@@ -83,23 +77,28 @@ class ProductController {
    * Actualiza un producto (conversión a centavos solo para almacenamiento)
    */
   async updateProduct(req, res) {
+    console.log('=== INICIO updateProduct ===');
+    console.log('Datos recibidos en el body:', JSON.stringify(req.body, null, 2));
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      console.error('Errores de validación:', errors.array());
+      return res.status(400).json({ 
+        message: 'Error de validación',
+        errors: errors.array() 
+      });
     }
 
     try {
       const productData = req.body;
-
-      // Conversión a centavos para almacenamiento
-      if (productData.price) {
-        productData.price = pesosToCents(productData.price);
-      }
-
+      console.log('Datos antes de actualizar:', JSON.stringify(productData, null, 2));
+      
       const updatedProduct = await productService.updateProduct(
         req.params.id,
         productData
       );
+      
+      console.log('Producto actualizado con éxito:', JSON.stringify(updatedProduct, null, 2));
 
       if (!updatedProduct) {
         return res.status(404).json({ message: "Producto no encontrado" });
