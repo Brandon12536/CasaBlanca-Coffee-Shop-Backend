@@ -8,11 +8,17 @@ const app = express();
 const PORT = process.env.PORT || 5050;
 
 // Middlewares
-// Configuración CORS simplificada al máximo
+// Configuración CORS específica para localhost
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Obtener el origen de la solicitud
+  const origin = req.headers.origin || req.headers.referer || '*';
+  console.log('Solicitud recibida desde origen:', origin);
+  
+  // Establecer encabezados CORS
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   
   // Responder inmediatamente a las solicitudes OPTIONS
   if (req.method === 'OPTIONS') {
