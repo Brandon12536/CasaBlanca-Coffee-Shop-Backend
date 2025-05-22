@@ -14,11 +14,26 @@ app.use((req, res, next) => {
   const origin = req.headers.origin || req.headers.referer || '*';
   console.log('Solicitud recibida desde origen:', origin);
   
-  // Establecer encabezados CORS
-  res.setHeader('Access-Control-Allow-Origin', origin);
+  // Permitir solicitudes desde cualquier origen
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Si la solicitud incluye credenciales, debemos especificar el origen exacto
+  if (req.headers.authorization || req.method !== 'GET') {
+    // Para solicitudes autenticadas o no-GET, usar el origen específico
+    const allowedOrigins = [
+      'https://casablanca-coffee-shop.netlify.app',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://web-production-ff9a.up.railway.app'
+    ];
+    
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+  }
   
   // Responder inmediatamente a las solicitudes OPTIONS
   if (req.method === 'OPTIONS') {
