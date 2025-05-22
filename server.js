@@ -8,37 +8,20 @@ const app = express();
 const PORT = process.env.PORT || 5050;
 
 // Middlewares
-// Configuración CORS específica para el frontend
-const allowedOrigins = [
-  'http://localhost:3000',  // Frontend en desarrollo local (puerto común para React)
-  'http://localhost:5173',  // Frontend en desarrollo local con Vite
-  'http://localhost:5174',  // Otro puerto posible para Vite
-  'https://casablanca-coffee-shop.netlify.app', // Posible dominio de producción
-  'https://casablanca-coffee-shop.vercel.app',  // Posible dominio de producción
-  'https://casablanca-coffee-shop-frontend.vercel.app', // Posible dominio de producción
-  'https://casablanca-coffee-shop-frontend.netlify.app'  // Posible dominio de producción
-];
+// Configuración CORS simplificada
+app.use(cors());
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Permitir solicitudes sin origen (como aplicaciones móviles o curl)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('No permitido por CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
-}));
-
-// Middleware adicional para manejar OPTIONS
+// Middleware para establecer encabezados CORS explícitamente
 app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Responder inmediatamente a las solicitudes OPTIONS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
+  
   next();
 });
 app.use(express.json());
