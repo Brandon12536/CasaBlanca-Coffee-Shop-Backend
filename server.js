@@ -8,14 +8,21 @@ const app = express();
 const PORT = process.env.PORT || 5050;
 
 // Middlewares
-// Configuración CORS simplificada
-app.use(cors());
+// Configuración CORS mejorada
+app.use(cors({
+  origin: '*', // Permitir cualquier origen
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
 
 // Middleware para establecer encabezados CORS explícitamente
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   // Responder inmediatamente a las solicitudes OPTIONS
   if (req.method === 'OPTIONS') {
