@@ -35,7 +35,7 @@ app.use((req, res, next) => {
     }
   }
   
-  // Responder inmediatamente a las solicitudes OPTIONS
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
