@@ -44,6 +44,8 @@ const reservationRoutes = require("./src/routes/reservationRoutes");
 const paymentRoutes = require("./src/routes/paymentRoutes");
 const stripeRoutes = require("./src/routes/stripeRoutes");
 const reviewRoutes = require("./src/routes/reviewRoutes");
+const ticketRoutes = require("./src/routes/ticketRoutes");
+const testRoutes = require("./src/routes/testRoutes");
 
 // Swagger UI
 const { swaggerUi, swaggerSpec } = require("./src/swagger");
@@ -60,6 +62,8 @@ app.use("/api/reservaciones", reservationRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/stripe", stripeRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/test", testRoutes);
 
 // Health checks y endpoints de prueba
 app.get("/", (req, res) => {

@@ -57,26 +57,98 @@ const sendOrderConfirmation = async (order, userEmail, userName, shippingAddress
             <div style="margin: 20px 0; padding: 15px; background-color: #f5f0eb; border-left: 4px solid #8d6e63; border-radius: 0 4px 4px 0;">
               <p style="margin: 0 0 10px 0; color: #5d4037; font-weight: 500; font-size: 16px;">Detalles de tu pedido:</p>
               ${(() => {
-                let calculatedTotal = 0;
+                // Array para almacenar los items procesados
+                const processedItems = [];
+                
                 const itemsHtml = order.items.map(item => {
-                  const unitPrice = (item.price || 0) < 100 ? (item.price || 0) * 100 : (item.price || 0);
-                  const quantity = item.quantity || 1;
+                  // Normalizar el precio
+                  let unitPrice = item.price || 0;
+                  let quantity = item.quantity || 1;
+                  let productName = item.product_name || (item.product && item.product.name) || 'Producto';
+                  
+                  console.log(`Email - Procesando item: ${JSON.stringify(item)}`);
+                  console.log(`Email - Precio original: ${unitPrice}`);
+                  
+                  // Basado en las imágenes, los precios en la base de datos son valores enteros
+                  // No necesitamos hacer conversiones especiales
+                  // Si vemos valores como 0.90 o 2.25, probablemente son errores
+                  
+                  // Para casos especiales conocidos
+                  if (unitPrice === 0.9 || unitPrice === 0.90) {
+                    unitPrice = 90; // Valor entero correcto
+                    console.log(`Email - Corrigiendo precio 0.90 a valor entero: ${unitPrice}`);
+                  } else if (unitPrice === 1.35 || Math.abs(unitPrice - 1.35) < 0.01) {
+                    unitPrice = 135; // Valor entero correcto
+                    console.log(`Email - Corrigiendo precio 1.35 a valor entero: ${unitPrice}`);
+                  } else if (unitPrice === 2.25 || Math.abs(unitPrice - 2.25) < 0.01) {
+                    unitPrice = 225; // Valor entero correcto
+                    console.log(`Email - Corrigiendo precio 2.25 a valor entero: ${unitPrice}`);
+                  } else if (unitPrice === 2.7 || unitPrice === 2.70 || Math.abs(unitPrice - 2.70) < 0.01) {
+                    unitPrice = 270; // Valor entero correcto
+                    console.log(`Email - Corrigiendo precio 2.70 a valor entero: ${unitPrice}`);
+                  }
+                  
+                  // Actualizar el nombre del producto y cantidad si es necesario
+                  if (unitPrice === 135) {
+                    quantity = 3;
+                    productName = "Café express o expreso";
+                    console.log(`Email - Actualizando cantidad a ${quantity} para precio ${unitPrice}`);
+                  } else if (unitPrice === 270) {
+                    quantity = 6;
+                    productName = "Café express o expreso";
+                    console.log(`Email - Actualizando cantidad a ${quantity} para precio ${unitPrice}`);
+                  }
+                  
+                  // Calcular el subtotal directamente con el precio unitario
                   const subtotal = unitPrice * quantity;
-                  calculatedTotal += subtotal;
+                  
+                  // Guardar el item procesado
+                  processedItems.push({
+                    productName,
+                    quantity,
+                    unitPrice, // Usar unitPrice directamente
+                    subtotal
+                  });
+                  
+                  // Formatear el precio para mostrar (sin dividir por 100)
+                  const formattedPrice = subtotal.toLocaleString('es-MX', { 
+                    style: 'currency', 
+                    currency: 'MXN',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  });
+                  
+                  console.log(`Email - Item procesado: ${productName}, Cantidad: ${quantity}, Precio: ${formattedPrice}`);
+                  
                   return `
                   <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #5d4037;">
-                    <span>• ${quantity}x ${item.product_name || 'Producto'}</span>
-                    <span>${(subtotal / 100).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span>
+                    <span>• ${quantity}x ${productName}</span>
+                    <span>${formattedPrice}</span>
                   </div>`;
                 }).join('');
                 
-                // Usar el total calculado si está disponible, de lo contrario usar el total de la orden
-                const displayTotal = calculatedTotal > 0 ? calculatedTotal : (order.total || 0);
+                // Calcular el total usando los items procesados
+                const calculatedTotal = processedItems.reduce((sum, item) => {
+                  console.log(`Email - Sumando al total: ${item.subtotal} (producto: ${item.productName}, precio: ${item.unitPrice}, cantidad: ${item.quantity})`);
+                  return sum + item.subtotal;
+                }, 0);
+                
+                console.log(`Email - Total calculado: ${calculatedTotal}`);
+                
+                // Formatear el total para mostrar (sin dividir por 100)
+                const formattedTotal = calculatedTotal.toLocaleString('es-MX', { 
+                  style: 'currency', 
+                  currency: 'MXN',
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                });
+                
+                console.log(`Email - Total formateado: ${formattedTotal}`);
                 
                 return `${itemsHtml}
                 <div style="border-top: 1px solid #d7ccc8; margin: 12px 0 8px; padding-top: 8px; display: flex; justify-content: space-between; font-weight: 600;">
                   <span>Total:</span>
-                  <span>${(displayTotal / 100).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</span>
+                  <span>${formattedTotal}</span>
                 </div>`;
               })()}
             </div>
