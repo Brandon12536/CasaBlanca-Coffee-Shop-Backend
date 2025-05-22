@@ -1,30 +1,51 @@
+// src/controllers/stripeController.js
 const stripe = require("../config/stripe");
 const supabase = require("../config/supabase");
+const { ORDER_STATUS, PAYMENT_METHODS } = require("../constants/orderStatuses");
+
+// Helper para manejo de errores
+const handleError = (context, error, res) => {
+  console.error(`[${context}] Error:`, error);
+  return res.status(500).json({
+    success: false,
+    message: `Error en ${context}`,
+    error: process.env.NODE_ENV === "development" ? error.message : undefined,
+  });
+};
 
 // Controlador para crear PaymentIntent
 const createPaymentIntent = async (req, res) => {
-  console.log("LLEGA PETICIÓN STRIPE", req.body);
   try {
+    console.log("[createPaymentIntent] Datos recibidos:", req.body);
+
     const { amount, currency = "mxn", user_id } = req.body;
-    console.log("Datos recibidos:", { amount, currency, user_id });
 
     if (!amount || !user_id) {
-      console.log("Faltan datos, respondiendo 400");
-      return res.status(400).json({ error: "Amount y user_id son requeridos" });
+      return res.status(400).json({
+        success: false,
+        message: "Amount y user_id son requeridos",
+      });
     }
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount),
       currency,
       metadata: { user_id },
+      payment_method_types: ["card"],
     });
 
-    console.log("[DEBUG PaymentIntent]", paymentIntent);
-    console.log("Respondiendo con client_secret");
-    return res.status(200).json({ client_secret: paymentIntent.client_secret });
+    console.log("[PaymentIntent Creado]", {
+      id: paymentIntent.id,
+      amount: paymentIntent.amount,
+      status: paymentIntent.status,
+    });
+
+    return res.status(200).json({
+      success: true,
+      client_secret: paymentIntent.client_secret,
+    });
   } catch (error) {
-    console.error("Error creating PaymentIntent:", error);
-    return res.status(500).json({ error: error.message });
+    return handleError("createPaymentIntent", error, res);
   }
 };
 
@@ -37,58 +58,54 @@ const stripeWebhook = async (req, res) => {
     const sig = req.headers["stripe-signature"];
     event = stripe.webhooks.constructEvent(req.rawBody, sig, endpointSecret);
   } catch (err) {
-    console.error("Webhook signature verification failed:", err.message);
+    console.error("Error en verificación de webhook:", err);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   if (event.type === "payment_intent.succeeded") {
-    const paymentIntent = event.data.object;
-    const metadata = paymentIntent.metadata || {};
-    const user_id = metadata.user_id;
-    const amount = paymentIntent.amount_received / 100;
-    const currency = paymentIntent.currency;
-    const stripe_payment_id = paymentIntent.id;
-    const status = paymentIntent.status;
-    const stripeMethod = paymentIntent.payment_method_types?.[0] || "card";
-    const payment_method = stripeMethod === "card" ? "tarjeta" : stripeMethod;
-    const receipt_url = paymentIntent.charges?.data?.[0]?.receipt_url || null;
-
-    let items = [];
-    let shipping_address = metadata.shipping_address || "";
-
     try {
-      if (user_id) {
-        const { data: cartItems, error: cartError } = await supabase
-          .from("cart")
-          .select("*")
-          .eq("user_id", user_id);
-        if (cartError) throw cartError;
-        items = (cartItems || []).map((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.product_price,
-        }));
-      }
+      const paymentIntent = event.data.object;
+      const { metadata, amount_received, currency, id } = paymentIntent;
+      const user_id = metadata?.user_id;
 
-      const { data: orderData, error: orderError } = await supabase
+      console.log("[Webhook] PaymentIntent exitoso:", {
+        paymentIntentId: id,
+        userId: user_id,
+        amount: amount_received,
+      });
+
+      // 1. Obtener items del carrito
+      const { data: cartItems = [], error: cartError } = user_id
+        ? await supabase.from("cart").select("*").eq("user_id", user_id)
+        : { data: [] };
+
+      if (cartError) throw cartError;
+
+      const items = cartItems.map((item) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price: item.product_price,
+      }));
+
+      // 2. Crear la orden
+      const orderData = {
+        user_id,
+        total: amount_received / 100,
+        shipping_address: metadata.shipping_address || null,
+        payment_method: PAYMENT_METHODS.CARD,
+        status: ORDER_STATUS.PROCESSING,
+      };
+
+      console.log("[Webhook] Creando orden:", orderData);
+      const { data: order, error: orderError } = await supabase
         .from("orders")
-        .insert([
-          {
-            user_id,
-            total: amount,
-            shipping_address,
-            payment_method,
-            status: "preparando",
-          },
-        ])
+        .insert([orderData])
         .select()
         .single();
 
       if (orderError) throw orderError;
 
-      const order = orderData;
-      console.log("[STRIPE WEBHOOK] Orden insertada:", order);
-
+      // 3. Crear items de la orden
       if (items.length > 0) {
         const orderItems = items.map((item) => ({
           order_id: order.id,
@@ -97,43 +114,40 @@ const stripeWebhook = async (req, res) => {
           price: item.price,
         }));
 
-        console.log(
-          "[STRIPE WEBHOOK] orderItems to insert:",
-          JSON.stringify(orderItems, null, 2)
-        );
-
         const { error: itemsError } = await supabase
           .from("order_items")
           .insert(orderItems);
+
         if (itemsError) throw itemsError;
       }
 
-      const { data: paymentData, error: paymentError } = await supabase
+      // 4. Registrar el pago
+      const paymentData = {
+        order_id: order.id,
+        user_id,
+        stripe_payment_id: id,
+        amount: amount_received,
+        currency,
+        status: paymentIntent.status,
+        payment_method: PAYMENT_METHODS.CARD,
+        receipt_url: paymentIntent.charges?.data?.[0]?.receipt_url || null,
+      };
+
+      const { error: paymentError } = await supabase
         .from("payments")
-        .insert([
-          {
-            order_id: order.id,
-            user_id,
-            stripe_payment_id,
-            amount,
-            currency,
-            status,
-            payment_method,
-            receipt_url,
-          },
-        ])
-        .select()
-        .single();
+        .insert([paymentData]);
 
       if (paymentError) throw paymentError;
 
-      console.log("[STRIPE WEBHOOK] Pago insertado en payments:", paymentData);
-      await supabase.from("cart").delete().eq("user_id", user_id);
+      // 5. Limpiar carrito si existe user_id
+      if (user_id) {
+        await supabase.from("cart").delete().eq("user_id", user_id);
+      }
 
       return res.status(200).json({ received: true });
-    } catch (err) {
-      console.error("Error en webhook Stripe:", err);
-      return res.status(500).json({ error: err.message });
+    } catch (error) {
+      console.error("[Webhook Error]", error);
+      return res.status(500).json({ received: false });
     }
   }
 
@@ -142,29 +156,30 @@ const stripeWebhook = async (req, res) => {
 
 // Controlador para checkout
 const checkout = async (req, res) => {
-  console.log("[checkout] Datos recibidos:", req.body);
-
   try {
-    const {
-      payment_data: {
-        stripe_payment_id,
-        amount,
-        currency,
-        payment_method,
-        status,
-      },
-      order_data: { items, shipping_address, subtotal },
-    } = req.body;
+    console.log("[checkout] Iniciando proceso con datos:", req.body);
 
-    const user_id = req.user.id;
-
-    if (!user_id) {
-      return res.status(400).json({ error: "Usuario no identificado" });
+    // Validar autenticación
+    if (!req.user?.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Usuario no autenticado",
+      });
     }
+
+    // Extraer datos
+    const { payment_data, order_data } = req.body;
+    const { stripe_payment_id, amount, currency, payment_method } =
+      payment_data;
+
+    const { items, shipping_address, subtotal } = order_data;
 
     // Validaciones básicas
     if (!stripe_payment_id || !amount || !items || !shipping_address) {
-      return res.status(400).json({ error: "Datos incompletos" });
+      return res.status(400).json({
+        success: false,
+        message: "Datos incompletos para el checkout",
+      });
     }
 
     // Verificar el pago con Stripe
@@ -172,77 +187,91 @@ const checkout = async (req, res) => {
       stripe_payment_id
     );
     if (paymentIntent.status !== "succeeded") {
-      return res.status(400).json({ error: "El pago no fue exitoso" });
+      return res.status(402).json({
+        success: false,
+        message: "El pago no fue exitoso",
+      });
     }
 
-    // Crear la orden en Supabase
+    // Preparar datos de la orden
+    const orderData = {
+      user_id: req.user.id,
+      total: subtotal,
+      shipping_address: JSON.stringify(shipping_address),
+      payment_method: PAYMENT_METHODS.CARD,
+      status: ORDER_STATUS.PROCESSING,
+      created_at: new Date().toISOString(),
+    };
+
+    console.log("[checkout] Insertando orden:", orderData);
+
+    // Insertar orden
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .insert([
-        {
-          user_id,
-          total: subtotal,
-          shipping_address: JSON.stringify(shipping_address),
-          payment_method,
-          status: "preparando",
-        },
-      ])
+      .insert([orderData])
       .select()
       .single();
 
-    if (orderError) throw orderError;
+    if (orderError) {
+      console.error("Error al crear orden:", {
+        message: orderError.message,
+        details: orderError.details,
+        code: orderError.code,
+      });
+      throw orderError;
+    }
 
     // Insertar items de la orden
-    const { error: itemsError } = await supabase.from("order_items").insert(
-      items.map((item) => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        price: item.unit_price,
-      }))
-    );
+    const orderItems = items.map((item) => ({
+      order_id: order.id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      price: item.unit_price,
+    }));
+
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .insert(orderItems);
 
     if (itemsError) throw itemsError;
 
     // Registrar el pago
-    const { data: payment, error: paymentError } = await supabase
+    const paymentRecord = {
+      order_id: order.id,
+      user_id: req.user.id,
+      stripe_payment_id,
+      amount: amount ,
+      currency,
+      status: paymentIntent.status,
+      payment_method: PAYMENT_METHODS.CARD,
+      receipt_url: paymentIntent.charges?.data?.[0]?.receipt_url || null,
+    };
+
+    const { error: paymentError } = await supabase
       .from("payments")
-      .insert([
-        {
-          order_id: order.id,
-          user_id,
-          stripe_payment_id,
-          amount,
-          currency,
-          status,
-          payment_method,
-          receipt_url: paymentIntent.charges?.data?.[0]?.receipt_url || null,
-        },
-      ])
-      .select()
-      .single();
+      .insert([paymentRecord]);
 
     if (paymentError) throw paymentError;
 
-    // Limpiar el carrito del usuario
-    await supabase.from("cart").delete().eq("user_id", user_id);
+    // Limpiar carrito
+    await supabase.from("cart").delete().eq("user_id", req.user.id);
 
-    // Respuesta exitosa
+    console.log("[checkout] Proceso completado exitosamente");
+
     return res.status(200).json({
       success: true,
       order_id: order.id,
-      payment_id: payment.id,
+      payment_id: paymentIntent.id,
     });
   } catch (error) {
-    console.error("[checkout] Error:", error);
-    return res.status(500).json({
-      error: "Error al procesar el pago",
-      details: error.message,
+    console.error("[checkout] Error completo:", {
+      message: error.message,
+      stack: error.stack,
     });
+    return handleError("checkout", error, res);
   }
 };
 
-// Exportación única de todos los controladores
 module.exports = {
   createPaymentIntent,
   stripeWebhook,

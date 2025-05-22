@@ -78,7 +78,7 @@ function centsToPesos(cents) {
   }
 
   // Convertir a pesos (dividir por 100)
-  return parseFloat((cents / 100).toFixed(2));
+  return parseFloat((cents ).toFixed(2));
 }
 
 module.exports = {

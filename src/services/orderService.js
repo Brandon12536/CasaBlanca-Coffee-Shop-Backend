@@ -29,25 +29,49 @@ const createOrder = async (orderData) => {
   return getOrderById(order[0].id);
 };
 
+// const getAllOrders = async () => {
+//   const { data, error } = await supabase.from(ORDERS_TABLE).select("*");
+
+//   if (error) throw error;
+
+//   return data.map((order) => ({
+//     ...order,
+//     total: centsToPesos(order.total),
+//     items: order.items?.map((item) => ({
+//       ...item,
+//       price: centsToPesos(item.price),
+//       product: {
+//         ...item.product,
+//         price: centsToPesos(item.product?.price),
+//       },
+//     })),
+//   }));
+// };
 const getAllOrders = async () => {
-  const { data, error } = await supabase.from(ORDERS_TABLE).select("*");
+  const { data, error } = await supabase.from(ORDERS_TABLE).select(`
+    *,
+    order_items:order_items!inner(*, product:products(id, name, price))
+  `);
 
   if (error) throw error;
 
   return data.map((order) => ({
     ...order,
     total: centsToPesos(order.total),
-    items: order.items?.map((item) => ({
-      ...item,
+    items: order.order_items.map((item) => ({
+      id: item.id,
+      order_id: item.order_id,
+      product_id: item.product_id,
+      quantity: item.quantity,
       price: centsToPesos(item.price),
       product: {
-        ...item.product,
-        price: centsToPesos(item.product?.price),
+        id: item.product.id,
+        name: item.product.name,
+        price: centsToPesos(item.product.price),
       },
     })),
   }));
 };
-
 // Todos los métodos de consulta DEVUELVEN LOS DATOS DIRECTOS
 const getUserOrdersWithProducts = async (userId) => {
   const { data: orders, error } = await supabase

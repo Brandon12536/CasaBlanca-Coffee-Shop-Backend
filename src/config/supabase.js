@@ -1,16 +1,33 @@
-const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
+const { createClient } = require("@supabase/supabase-js");
+require("dotenv").config();
 
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    db: {
+      schema: "public",
+    },
+  }
+);
 
-const supabaseUrl = process.env.SUPABASE_URL;
-// const supabaseKey = process.env.SUPABASE_KEY;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Verificación de conexión mejorada (versión async/await)
+(async () => {
+  try {
+    const { error } = await supabase.from("products").select("id").limit(1);
+    if (error) {
+      console.error("❌ Error de conexión a Supabase:", error.message);
+      process.exit(1);
+    }
+    console.log("✅ Conexión a Supabase verificada correctamente");
+  } catch (error) {
+    console.error("❌ Error fatal de conexión:", error.message);
+    process.exit(1);
+  }
+})();
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Error: Las credenciales de Supabase no están configuradas correctamente en el archivo .env');
-  process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-module.exports = supabase;
+module.exports = supabase; // Exportación directa (sin llaves)

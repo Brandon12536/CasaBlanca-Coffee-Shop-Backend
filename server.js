@@ -23,6 +23,7 @@ const cartRoutes = require("./src/routes/cartRoutes");
 const reservationRoutes = require("./src/routes/reservationRoutes");
 const paymentRoutes = require("./src/routes/paymentRoutes");
 const stripeRoutes = require("./src/routes/stripeRoutes");
+const statsRoutes = require("./src/routes/statsRoutes"); // <-- Agrega esta línea
 
 // Swagger UI
 const { swaggerUi, swaggerSpec } = require("./src/swagger");
@@ -37,6 +38,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/reservaciones", reservationRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/stripe", stripeRoutes);
+app.use("/api/stats", statsRoutes); // <-- Agrega esta línea
 
 // Health checks y endpoints de prueba
 app.get("/", (req, res) => {
