@@ -2,6 +2,7 @@
 const stripe = require("../config/stripe");
 const supabase = require("../config/supabase");
 const { ORDER_STATUS, PAYMENT_METHODS } = require("../constants/orderStatuses");
+const { sendOrderConfirmation } = require("../services/emailService");
 
 // Helper para manejo de errores
 const handleError = (context, error, res) => {
@@ -144,6 +145,80 @@ const stripeWebhook = async (req, res) => {
         await supabase.from("cart").delete().eq("user_id", user_id);
       }
 
+      // 6. Enviar correo de confirmación con PDF
+      try {
+        // Obtener información del usuario
+        const { data: userData, error: userError } = await supabase
+          .from("users")
+          .select("email, name")
+          .eq("id", user_id)
+          .single();
+
+        if (userError) {
+          console.error("[Webhook] Error al obtener datos del usuario para el correo:", userError);
+        } else if (userData && userData.email) {
+          // Obtener items de la orden
+          const { data: orderItems, error: orderItemsError } = await supabase
+            .from("order_items")
+            .select("product_id, quantity, price")
+            .eq("order_id", order.id);
+
+          if (orderItemsError) {
+            console.error("[Webhook] Error al obtener items de la orden:", orderItemsError);
+          } else {
+            // Obtener nombres de productos
+            const productIds = orderItems.map(item => item.product_id);
+            const { data: products, error: productsError } = await supabase
+              .from("products")
+              .select("id, name")
+              .in("id", productIds);
+
+            if (productsError) {
+              console.error("[Webhook] Error al obtener productos:", productsError);
+            } else {
+              // Preparar datos para el correo
+              const orderWithItems = {
+                ...order,
+                items: orderItems.map(item => {
+                  const product = products.find(p => p.id === item.product_id);
+                  return {
+                    product_name: product ? product.name : `Producto ${item.product_id}`,
+                    quantity: item.quantity,
+                    price: item.price
+                  };
+                })
+              };
+
+              const userName = userData.name || 'Cliente';
+
+              // Parsear la dirección de envío si está en formato JSON
+              let shippingAddress = order.shipping_address;
+              if (typeof shippingAddress === 'string') {
+                try {
+                  shippingAddress = JSON.parse(shippingAddress);
+                } catch (e) {
+                  console.error("[Webhook] Error al parsear dirección de envío:", e);
+                  // Usar un objeto vacío si no se puede parsear
+                  shippingAddress = {};
+                }
+              }
+
+              // Enviar correo de confirmación con PDF
+              console.log("[Webhook] Enviando correo de confirmación a", userData.email);
+              await sendOrderConfirmation(
+                orderWithItems,
+                userData.email,
+                userName,
+                shippingAddress
+              );
+            }
+          }
+        }
+      } catch (emailError) {
+        console.error("[Webhook] Error al enviar correo de confirmación:", emailError);
+        // No fallamos la respuesta si el correo falla
+      }
+
       return res.status(200).json({ received: true });
     } catch (error) {
       console.error("[Webhook Error]", error);
@@ -257,6 +332,43 @@ const checkout = async (req, res) => {
     await supabase.from("cart").delete().eq("user_id", req.user.id);
 
     console.log("[checkout] Proceso completado exitosamente");
+
+    // Obtener información del usuario para el correo
+    try {
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("email, name")
+        .eq("id", req.user.id)
+        .single();
+
+      if (userError) {
+        console.error("Error al obtener datos del usuario para el correo:", userError);
+      } else if (userData && userData.email) {
+        // Preparar datos para el correo
+        const orderWithItems = {
+          ...order,
+          items: items.map(item => ({
+            product_name: item.product_name || item.name,
+            quantity: item.quantity,
+            price: item.unit_price
+          }))
+        };
+
+        const userName = userData.name || 'Cliente';
+
+        // Enviar correo de confirmación con PDF
+        console.log("[checkout] Enviando correo de confirmación a", userData.email);
+        await sendOrderConfirmation(
+          orderWithItems,
+          userData.email,
+          userName,
+          shipping_address
+        );
+      }
+    } catch (emailError) {
+      console.error("Error al enviar correo de confirmación:", emailError);
+      // No fallamos la respuesta si el correo falla
+    }
 
     return res.status(200).json({
       success: true,

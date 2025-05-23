@@ -8,7 +8,51 @@ const app = express();
 const PORT = process.env.PORT || 5050;
 
 // Middlewares
-app.use(cors());
+// Configuración CORS específica para localhost
+// Usar el middleware cors directamente con opciones personalizadas
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Lista de orígenes permitidos
+    const allowedOrigins = [
+      'https://osdems-casa-blanca.netlify.app',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5050',
+      'https://web-production-ff9a.up.railway.app',
+      'https://casablanca-coffee-shop-backend-production.up.railway.app'
+    ];
+    
+    // Permitir solicitudes sin origen (como las de herramientas API o pruebas)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Verificar si el origen está en la lista de permitidos
+    if (allowedOrigins.indexOf(origin) !== -1 || origin === 'null') {
+      callback(null, true);
+    } else {
+      // Para desarrollo, permitir cualquier origen
+      callback(null, true);
+      // En producción, podrías querer ser más restrictivo:
+      // callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
+};
+
+// Aplicar la configuración CORS a todas las rutas
+app.use(cors(corsOptions));
+
+// Log de solicitudes para depuración
+app.use((req, res, next) => {
+  const origin = req.headers.origin || req.headers.referer || 'desconocido';
+  console.log(`Solicitud recibida desde origen: ${origin}, método: ${req.method}, ruta: ${req.path}`);
+  next();
+});
+
+// No necesitamos una segunda instancia de cors
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -29,6 +73,8 @@ const reservationRoutes = require("./src/routes/reservationRoutes");
 const paymentRoutes = require("./src/routes/paymentRoutes");
 const stripeRoutes = require("./src/routes/stripeRoutes");
 const reviewRoutes = require("./src/routes/reviewRoutes");
+const ticketRoutes = require("./src/routes/ticketRoutes");
+const testRoutes = require("./src/routes/testRoutes");
 const statsRoutes = require("./src/routes/statsRoutes"); // <-- Nuevas rutas para estadísticas
 
 // Swagger UI
@@ -46,6 +92,8 @@ app.use("/api/reservaciones", reservationRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/stripe", stripeRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/tickets", ticketRoutes);
+app.use("/api/test", testRoutes);
 app.use("/api/stats", statsRoutes); // <-- Montaje de rutas de estadísticas
 
 // Health checks y endpoints de prueba
