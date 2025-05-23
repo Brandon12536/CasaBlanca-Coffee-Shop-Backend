@@ -245,6 +245,93 @@ const swaggerOptions = {
             },
           },
         },
+        // Esquemas para facturas
+        Invoice: {
+          type: "object",
+          properties: {
+            invoiceNumber: {
+              type: "string",
+              description: "Número único de la factura",
+            },
+            orderId: {
+              type: "string",
+              format: "uuid",
+              description: "ID de la orden asociada a la factura",
+            },
+            customerName: {
+              type: "string",
+              description: "Nombre del cliente",
+            },
+            customerRfc: {
+              type: "string",
+              description: "RFC del cliente",
+            },
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  productName: {
+                    type: "string",
+                    description: "Nombre del producto",
+                  },
+                  quantity: {
+                    type: "integer",
+                    description: "Cantidad de productos",
+                  },
+                  unitPrice: {
+                    type: "number",
+                    description: "Precio unitario",
+                  },
+                  subtotal: {
+                    type: "number",
+                    description: "Subtotal (precio * cantidad)",
+                  },
+                },
+              },
+              description: "Productos incluidos en la factura",
+            },
+            subtotal: {
+              type: "number",
+              description: "Subtotal antes de impuestos",
+            },
+            tax: {
+              type: "number",
+              description: "Impuestos (IVA 16%)",
+            },
+            total: {
+              type: "number",
+              description: "Total a pagar (subtotal + impuestos)",
+            },
+            issueDate: {
+              type: "string",
+              format: "date-time",
+              description: "Fecha de emisión de la factura",
+            },
+            shippingAddress: {
+              type: "object",
+              properties: {
+                line1: { type: "string" },
+                line2: { type: "string" },
+                city: { type: "string" },
+                state: { type: "string" },
+                postalCode: { type: "string" },
+                country: { type: "string" },
+              },
+              description: "Dirección de envío",
+            },
+          },
+        },
+        EmailRequest: {
+          type: "object",
+          properties: {
+            email: {
+              type: "string",
+              format: "email",
+              description: "Correo electrónico donde enviar la factura (opcional)",
+            },
+          },
+        },
       },
     },
     paths: {
@@ -524,6 +611,122 @@ const swaggerOptions = {
             500: { description: "Error interno del servidor" },
           },
         },
+      },
+      // Endpoints de facturación
+      "/api/invoices/{orderId}": {
+        get: {
+          tags: ["Facturas"],
+          summary: "Generar factura en PDF",
+          description: "Genera una factura en PDF para una orden específica",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: "orderId",
+              in: "path",
+              required: true,
+              description: "ID de la orden para la que se generará la factura",
+              schema: {
+                type: "string",
+                format: "uuid"
+              }
+            }
+          ],
+          responses: {
+            200: {
+              description: "Factura generada correctamente",
+              content: {
+                "application/pdf": {
+                  schema: {
+                    type: "string",
+                    format: "binary"
+                  }
+                }
+              }
+            },
+            400: {
+              description: "Solicitud incorrecta - ID de orden no proporcionado"
+            },
+            401: {
+              description: "No autorizado - Se requiere autenticación"
+            },
+            403: {
+              description: "Prohibido - No tienes permiso para acceder a esta orden"
+            },
+            404: {
+              description: "Orden no encontrada"
+            },
+            500: {
+              description: "Error interno del servidor"
+            }
+          }
+        }
+      },
+      "/api/invoices/{orderId}/email": {
+        post: {
+          tags: ["Facturas"],
+          summary: "Enviar factura por correo electrónico",
+          description: "Genera una factura en PDF y la envía por correo electrónico",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: "orderId",
+              in: "path",
+              required: true,
+              description: "ID de la orden para la que se enviará la factura",
+              schema: {
+                type: "string",
+                format: "uuid"
+              }
+            }
+          ],
+          requestBody: {
+            required: false,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/EmailRequest"
+                }
+              }
+            }
+          },
+          responses: {
+            200: {
+              description: "Factura enviada por correo electrónico correctamente",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: {
+                        type: "boolean",
+                        example: true
+                      },
+                      message: {
+                        type: "string",
+                        example: "Factura enviada por correo electrónico"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            400: {
+              description: "Solicitud incorrecta - ID de orden no proporcionado"
+            },
+            401: {
+              description: "No autorizado - Se requiere autenticación"
+            },
+            403: {
+              description: "Prohibido - No tienes permiso para acceder a esta orden"
+            },
+            404: {
+              description: "Orden no encontrada"
+            },
+            500: {
+              description: "Error interno del servidor"
+            }
+          }
+        }
       },
     },
     security: [{ bearerAuth: [] }],

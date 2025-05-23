@@ -76,6 +76,7 @@ const reviewRoutes = require("./src/routes/reviewRoutes");
 const ticketRoutes = require("./src/routes/ticketRoutes");
 const testRoutes = require("./src/routes/testRoutes");
 const statsRoutes = require("./src/routes/statsRoutes"); // <-- Nuevas rutas para estadísticas
+const invoiceRoutes = require("./src/routes/invoiceRoutes"); // <-- Nuevas rutas para facturas
 
 // Swagger UI
 const { swaggerUi, swaggerSpec } = require("./src/swagger");
@@ -95,6 +96,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/stats", statsRoutes); // <-- Montaje de rutas de estadísticas
+app.use("/api/invoices", invoiceRoutes); // <-- Montaje de rutas de facturas
 
 // Health checks y endpoints de prueba
 app.get("/", (req, res) => {
