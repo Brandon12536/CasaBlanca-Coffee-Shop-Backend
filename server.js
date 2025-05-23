@@ -9,34 +9,38 @@ const PORT = process.env.PORT || 5050;
 
 // Middlewares
 // Configuración CORS específica para localhost
+// Configuración CORS simplificada y más permisiva para resolver problemas en producción
 app.use((req, res, next) => {
   // Obtener el origen de la solicitud
   const origin = req.headers.origin || req.headers.referer || '*';
   console.log('Solicitud recibida desde origen:', origin);
   
-  // Permitir solicitudes desde cualquier origen
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Lista de orígenes permitidos
+  const allowedOrigins = [
+    'https://osdems-casa-blanca.netlify.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:5050',
+    'https://web-production-ff9a.up.railway.app',
+    'https://casablanca-coffee-shop-backend-production.up.railway.app'
+  ];
+  
+  // Configurar CORS para cualquier tipo de solicitud
+  if (origin && (allowedOrigins.includes(origin) || origin === 'null')) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    // Si el origen no está en la lista, permitir cualquier origen para solicitudes GET
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  // Permitir credenciales
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Permitir métodos y cabeceras
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   
-  // Si la solicitud incluye credenciales, debemos especificar el origen exacto
-  if (req.headers.authorization || req.method !== 'GET') {
-    // Para solicitudes autenticadas o no-GET, usar el origen específico
-    const allowedOrigins = [
-      'https://osdems-casa-blanca.netlify.app',
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:5050',
-      'https://web-production-ff9a.up.railway.app'
-    ];
-    
-    if (origin && allowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    }
-  }
-  
-
+  // Manejar solicitudes OPTIONS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
