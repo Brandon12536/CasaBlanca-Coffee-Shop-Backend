@@ -9,47 +9,50 @@ const PORT = process.env.PORT || 5050;
 
 // Middlewares
 // Configuración CORS específica para localhost
-// Configuración CORS simplificada y más permisiva para resolver problemas en producción
+// Usar el middleware cors directamente con opciones personalizadas
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Lista de orígenes permitidos
+    const allowedOrigins = [
+      'https://osdems-casa-blanca.netlify.app',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:5050',
+      'https://web-production-ff9a.up.railway.app',
+      'https://casablanca-coffee-shop-backend-production.up.railway.app'
+    ];
+    
+    // Permitir solicitudes sin origen (como las de herramientas API o pruebas)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Verificar si el origen está en la lista de permitidos
+    if (allowedOrigins.indexOf(origin) !== -1 || origin === 'null') {
+      callback(null, true);
+    } else {
+      // Para desarrollo, permitir cualquier origen
+      callback(null, true);
+      // En producción, podrías querer ser más restrictivo:
+      // callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization']
+};
+
+// Aplicar la configuración CORS a todas las rutas
+app.use(cors(corsOptions));
+
+// Log de solicitudes para depuración
 app.use((req, res, next) => {
-  // Obtener el origen de la solicitud
-  const origin = req.headers.origin || req.headers.referer || '*';
-  console.log('Solicitud recibida desde origen:', origin);
-  
-  // Lista de orígenes permitidos
-  const allowedOrigins = [
-    'https://osdems-casa-blanca.netlify.app',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:5050',
-    'https://web-production-ff9a.up.railway.app',
-    'https://casablanca-coffee-shop-backend-production.up.railway.app'
-  ];
-  
-  // Configurar CORS para cualquier tipo de solicitud
-  if (origin && (allowedOrigins.includes(origin) || origin === 'null')) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    // Si el origen no está en la lista, permitir cualquier origen para solicitudes GET
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
-  // Permitir credenciales
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  // Permitir métodos y cabeceras
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  // Manejar solicitudes OPTIONS
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
+  const origin = req.headers.origin || req.headers.referer || 'desconocido';
+  console.log(`Solicitud recibida desde origen: ${origin}, método: ${req.method}, ruta: ${req.path}`);
   next();
 });
 
-// Usar cors() como respaldo
-app.use(cors());
+// No necesitamos una segunda instancia de cors
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
