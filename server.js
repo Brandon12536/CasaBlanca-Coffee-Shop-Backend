@@ -23,9 +23,10 @@ app.use((req, res, next) => {
   if (req.headers.authorization || req.method !== 'GET') {
     // Para solicitudes autenticadas o no-GET, usar el origen específico
     const allowedOrigins = [
-      'https://casablanca-coffee-shop.netlify.app',
+      'https://osdems-casa-blanca.netlify.app',
       'http://localhost:5173',
       'http://localhost:3000',
+      'http://localhost:5050',
       'https://web-production-ff9a.up.railway.app'
     ];
     
